@@ -129,5 +129,3 @@ unsigned int Wheel(byte WheelPos)
   return(Color(r,g,b));
 }
 
-    
-    
