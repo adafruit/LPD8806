@@ -56,6 +56,15 @@ void LPD8806::write8(uint8_t d) {
   }
 }
 
+// Basic, push SPI data out
+void LPD8806::writezeros(uint16_t n) {
+  digitalWrite(dataPin, LOW);
+  for (uint16_t i=0; i<8*n; i++) {
+     digitalWrite(clockPin, HIGH);
+     digitalWrite(clockPin, LOW); 
+  }
+}
+
 // This is how data is pushed to the strip. 
 // Unfortunately, the company that makes the chip didnt release the 
 // protocol document or you need to sign an NDA or something stupid
@@ -65,10 +74,7 @@ void LPD8806::show(void) {
   uint16_t i;
   
   // get the strip's attention
-  write8(0);
-  write8(0);
-  write8(0);
-  write8(0);
+  writezeros(4);
 
   // write 24 bits per pixel
   for (i=0; i<numLEDs; i++ ) {
@@ -78,15 +84,11 @@ void LPD8806::show(void) {
   }
   
   // to 'latch' the data, we send just zeros
-  for (i=0; i < (numLEDs*2); i++ ) {
-    write8(0); 
-    write8(0); 
-    write8(0);     
-  }
+  writezeros(3*numLEDs*2);
   
-  // we need to have a delay here, 10ms seems to do the job
+  // we need to have a delay here, a few ms seems to do the job
   // shorter may be OK as well - need to experiment :(
-  delay(10);
+  delay(3);
 }
 
 // store the rgb component in our array
