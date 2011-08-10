@@ -1,38 +1,20 @@
-#include <TimerOne.h>
-#include "LPD6803.h"
+#include "LPD8806.h"
 
-//Example to control LPD6803-based RGB LED Modules in a strand
-// Original code by Bliptronics.com Ben Moyes 2009
-//Use this as you wish, but please give credit, or at least buy some of my LEDs!
-
-// Code cleaned up and Object-ified by ladyada, should be a bit easier to use
+// Example to control LPD8806-based RGB LED Modules in a strip
 
 /*****************************************************************************/
 
 // Choose which 2 pins you will use for output.
 // Can be any valid output pins.
-int dataPin = 2;       // 'yellow' wire
-int clockPin = 3;      // 'green' wire
-// Don't forget to connect 'blue' to ground and 'red' to +5V
+int dataPin = 2;   
+int clockPin = 3; 
 
-// Timer 1 is also used by the strip to send pixel clocks
-
-// Set the first variable to the NUMBER of pixels. 20 = 20 pixels in a row
-LPD6803 strip = LPD6803(20, dataPin, clockPin);
-
+// Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
+// The LED strips are 32 LEDs per meter but you can extend/cut the strip
+LPD8806 strip = LPD8806(32, dataPin, clockPin);
 
 void setup() {
-  
-  // The Arduino needs to clock out the data to the pixels
-  // this happens in interrupt timer 1, we can change how often
-  // to call the interrupt. setting CPUmax to 100 will take nearly all all the
-  // time to do the pixel updates and a nicer/faster display, 
-  // especially with strands of over 100 dots.
-  // (Note that the max is 'pessimistic', its probably 10% or 20% less in reality)
-  
-  strip.setCPUmax(50);  // start with 50% CPU usage. up this if the strand flickers or is slow
-  
-  // Start up the LED counter
+  // Start up the LED strip
   strip.begin();
 
   // Update the strip, to start they are all 'off'
@@ -41,15 +23,20 @@ void setup() {
 
 
 void loop() {
-  // Some example procedures showing how to display to the pixels
-  
-  colorWipe(Color(63, 0, 0), 50);
-  colorWipe(Color(0, 63, 0), 50);
-  colorWipe(Color(0, 0, 63), 50);
+  colorChase(strip.Color(127,127,127), 10);
 
-  rainbow(50);
+  // Send a simple pixel chase in...
+  colorChase(strip.Color(127,0,0), 10);		// full brightness red
+  colorChase(strip.Color(127,127,0), 10);	// orange
+  colorChase(strip.Color(0,127,0), 10);		// green
+  colorChase(strip.Color(0,127,127), 10);	// teal
+  colorChase(strip.Color(0,0,127), 10);		// blue
+  colorChase(strip.Color(127,0,127), 10);	// violet
 
-  rainbowCycle(50);
+  // fill the entire strip with...
+  colorWipe(strip.Color(127,0,0), 10);		// red
+  colorWipe(strip.Color(0, 127,0), 10);		// green
+  colorWipe(strip.Color(0,0,127), 10);		// blue
 }
 
 void rainbow(uint8_t wait) {
@@ -84,7 +71,7 @@ void rainbowCycle(uint8_t wait) {
 
 // fill the dots one after the other with said color
 // good for testing purposes
-void colorWipe(uint16_t c, uint8_t wait) {
+void colorWipe(uint32_t c, uint8_t wait) {
   int i;
   
   for (i=0; i < strip.numPixels(); i++) {
@@ -94,14 +81,28 @@ void colorWipe(uint16_t c, uint8_t wait) {
   }
 }
 
-/* Helper functions */
-
-// Create a 15 bit color value from R,G,B
-unsigned int Color(byte r, byte g, byte b)
-{
-  //Take the lowest 5 bits of each value and append them end to end
-  return( ((unsigned int)g & 0x1F )<<10 | ((unsigned int)b & 0x1F)<<5 | (unsigned int)r & 0x1F);
+// Chase a dot down the strip
+// good for testing purposes
+void colorChase(uint32_t c, uint8_t wait) {
+  int i;
+  
+  for (i=0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, 0);  // turn all pixels off
+  } 
+  
+  for (i=0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, c);
+      if (i == 0) { 
+        strip.setPixelColor(strip.numPixels()-1, 0);
+      } else {
+        strip.setPixelColor(i-1, 0);
+      }
+      strip.show();
+      delay(wait);
+  }
 }
+
+/* Helper functions */
 
 //Input a value 0 to 127 to get a color value.
 //The colours are a transition r - g -b - back to r
@@ -126,6 +127,5 @@ unsigned int Wheel(byte WheelPos)
       g=0;                  //green off
       break; 
   }
-  return(Color(r,g,b));
+  return(strip.Color(r,g,b));
 }
-
