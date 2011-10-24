@@ -14,6 +14,12 @@ int clockPin = 3;
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
 LPD8806 strip = LPD8806(32, dataPin, clockPin);
 
+// you can also use hardware SPI, for ultra fast writes by leaving out the
+// data and clock pin arguments. This will 'fix' the pins to the following:
+// on Arduino 168/328 thats data = 11, and clock = pin 13
+// on Megas thats data = 51, and clock = 52 
+//LPD8806 strip = LPD8806(32);
+
 void setup() {
   // Start up the LED strip
   strip.begin();
