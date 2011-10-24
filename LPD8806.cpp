@@ -1,4 +1,7 @@
 #include "LPD8806.h"
+#include "SPI.h"
+#include "pins_arduino.h"
+#include "wiring_private.h"
 
 //Example to control LPD8806-based RGB LED Strips
 // (c) Adafruit industries
@@ -6,11 +9,30 @@
 
 /*****************************************************************************/
 
+// Test code for using hardware SPI
+LPD8806::LPD8806(uint16_t n) {
+  // use hardware SPI!
+  dataPin = clockPin = 0;
+  hardwareSPI = true;
+
+  numLEDs = n;
+  // malloc 3 bytes per pixel so we dont have to hardcode the length
+  pixels = (uint8_t *)malloc(numLEDs * 3); // 3 bytes per pixel
+  for (uint16_t i=0; i < numLEDs; i++) {
+    setPixelColor(i, 0, 0, 0);
+  }
+}
 
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
   dataPin = dpin;
   clockPin = cpin;
+
   numLEDs = n;
+
+  clkportreg = portOutputRegister(digitalPinToPort(cpin));
+  clkpin = digitalPinToBitMask(cpin);
+  mosiportreg = portOutputRegister(digitalPinToPort(dpin));
+  mosipin = digitalPinToBitMask(dpin);
 
   // malloc 3 bytes per pixel so we dont have to hardcode the length
   pixels = (uint8_t *)malloc(numLEDs * 3); // 3 bytes per pixel
@@ -22,6 +44,12 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
 void LPD8806::begin(void) {
   pinMode(dataPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
+
+  if (hardwareSPI) {
+    // using hardware SPI 
+    SPI.begin();
+    SPI.setClockDivider(1);
+  }
 }
 
 uint16_t LPD8806::numPixels(void) {
@@ -45,23 +73,55 @@ uint32_t LPD8806::Color(byte r, byte g, byte b)
 }
 
 // Basic, push SPI data out
-void LPD8806::write8(uint8_t d) {
-  for (uint8_t i=0; i<8; i++) {
-     if (d & _BV(7-i))
-       digitalWrite(dataPin, HIGH);
-     else
-       digitalWrite(dataPin, LOW);
-     digitalWrite(clockPin, HIGH);
-     digitalWrite(clockPin, LOW); 
+inline void LPD8806::write8(uint8_t d) {
+  
+  // this is the 'least efficient' way (28ms per 32-LED write)
+  // shiftOut(dataPin, clockPin, MSBFIRST, d);
+
+  if (hardwareSPI) {
+    // use hardware SPI!
+    SPI.transfer(d);
+    return;
   }
+
+  // this is the faster pin-flexible way! the pins are precomputed once only
+  for (int8_t i=7; i>=0; i--) {
+    *clkportreg &= ~clkpin;
+    if (d & (1<<i)) {
+      *mosiportreg |= mosipin;
+    } else {
+      *mosiportreg &= ~mosipin;
+    }
+    *clkportreg |= clkpin;
+  }
+
+  *clkportreg &= ~clkpin;
+  
 }
 
 // Basic, push SPI data out
 void LPD8806::writezeros(uint16_t n) {
+  // this is the 'least efficient' way (28ms per 32-LED write)
+  /*
   digitalWrite(dataPin, LOW);
   for (uint16_t i=0; i<8*n; i++) {
      digitalWrite(clockPin, HIGH);
      digitalWrite(clockPin, LOW); 
+  }
+  */
+
+  if (hardwareSPI) {
+    // hardware SPI!
+    for (uint16_t i=0; i<8*n; i++)
+      SPI.transfer(0);
+    return;
+  }
+
+  // this is the faster pin-flexible way! 7.4ms to write 32 LEDs
+  *mosiportreg &= ~mosipin;
+  for (uint16_t i=0; i<8*n; i++) {
+    *clkportreg |= clkpin;
+    *clkportreg &= ~clkpin;
   }
 }
 

@@ -1,4 +1,5 @@
 #include "LPD8806.h"
+#include "SPI.h"
 
 // Example to control LPD8806-based RGB LED Modules in a strip
 
@@ -109,6 +110,7 @@ void colorChase(uint32_t c, uint8_t wait) {
 
 //Input a value 0 to 384 to get a color value.
 //The colours are a transition r - g -b - back to r
+
 uint32_t Wheel(uint16_t WheelPos)
 {
   byte r, g, b;

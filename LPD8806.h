@@ -7,11 +7,15 @@ class LPD8806 {
   uint8_t *pixels;
   uint16_t numLEDs;
   uint8_t dataPin, clockPin;
+  volatile uint8_t *clkportreg, *mosiportreg;
+  uint8_t clkpin, mosipin;
+  boolean hardwareSPI;
 
   void writezeros(uint16_t n);
 
  public:
   LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin);
+  LPD8806(uint16_t n);
   void begin();
   void show();
   void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b);
