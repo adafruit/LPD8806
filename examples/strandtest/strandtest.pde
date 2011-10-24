@@ -27,7 +27,7 @@ void loop() {
   colorChase(strip.Color(127,127,127), 10);
 
   // Send a simple pixel chase in...
-  colorChase(strip.Color(127,0,0), 10);		// full brightness red
+  colorChase(strip.Color(127,0,0), 10);  	// full brightness red
   colorChase(strip.Color(127,127,0), 10);	// orange
   colorChase(strip.Color(0,127,0), 10);		// green
   colorChase(strip.Color(0,127,127), 10);	// teal
