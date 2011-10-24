@@ -48,7 +48,9 @@ void LPD8806::begin(void) {
   if (hardwareSPI) {
     // using hardware SPI 
     SPI.begin();
-    SPI.setClockDivider(1);
+    // run the SPI bus as fast as possible
+    // this has been tested on a 16MHz Arduino Uno
+    SPI.setClockDivider(SPI_CLOCK_DIV2);
   }
 }
 
@@ -77,12 +79,6 @@ inline void LPD8806::write8(uint8_t d) {
   
   // this is the 'least efficient' way (28ms per 32-LED write)
   // shiftOut(dataPin, clockPin, MSBFIRST, d);
-
-  if (hardwareSPI) {
-    // use hardware SPI!
-    SPI.transfer(d);
-    return;
-  }
 
   // this is the faster pin-flexible way! the pins are precomputed once only
   for (int8_t i=7; i>=0; i--) {
@@ -137,12 +133,24 @@ void LPD8806::show(void) {
   writezeros(4);
 
   // write 24 bits per pixel
-  for (i=0; i<numLEDs; i++ ) {
-    write8(pixels[i*3]); 
-    write8(pixels[i*3+1]); 
-    write8(pixels[i*3+2]);     
+  if (hardwareSPI) {
+    // sped up!
+    for (i=0; i<numLEDs; i++ ) {
+      SPDR = pixels[i*3];
+      while (!(SPSR & (1<<SPIF))) {};
+      SPDR = pixels[i*3+1];
+      while (!(SPSR & (1<<SPIF))) {};
+      SPDR = pixels[i*3+2];
+      while (!(SPSR & (1<<SPIF))) {};
+    }
+  } else {
+    for (i=0; i<numLEDs; i++ ) {
+      write8(pixels[i*3]); 
+      write8(pixels[i*3+1]); 
+      write8(pixels[i*3+2]);     
+    }
   }
-  
+    
   // to 'latch' the data, we send just zeros
   writezeros(3*numLEDs*2);
   
