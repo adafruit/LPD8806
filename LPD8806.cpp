@@ -152,8 +152,9 @@ void LPD8806::show(void) {
   }
     
   // to 'latch' the data, we send just zeros
-  writezeros(3*numLEDs*2);
-  
+  //writezeros(3*numLEDs*2);
+  writezeros(4);
+
   // we need to have a delay here, a few ms seems to do the job
   // shorter may be OK as well - need to experiment :(
   delay(3);
