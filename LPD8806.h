@@ -1,4 +1,8 @@
-#include <WProgram.h>
+#if (ARDUINO <= 22)
+ #include <WProgram.h>
+#else
+ #include <Arduino.h>
+#endif
 
 class LPD8806 {
  private:
