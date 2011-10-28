@@ -95,12 +95,10 @@ inline void LPD8806::write8(uint8_t d) {
 
 // Basic, push SPI data out
 void LPD8806::writezeros(uint16_t n) {
-  uint16_t i = 8 * n;
-
   // this is the 'least efficient' way (28ms per 32-LED write)
   /*
   digitalWrite(dataPin, LOW);
-  while(i--) {
+  for(uint16_t i = 8 * n; i>0; i--) {
      digitalWrite(clockPin, HIGH);
      digitalWrite(clockPin, LOW); 
   }
@@ -108,14 +106,14 @@ void LPD8806::writezeros(uint16_t n) {
 
   if (hardwareSPI) {
     // hardware SPI!
-    while(i--)
+    while(n--)
       SPI.transfer(0);
     return;
   }
 
   // this is the faster pin-flexible way! 7.4ms to write 32 LEDs
   *mosiportreg &= ~mosipin;
-  while(i--) {
+  for(uint16_t i = 8 * n; i>0; i--) {
     *clkportreg |= clkpin;
     *clkportreg &= ~clkpin;
   }
