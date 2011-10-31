@@ -18,9 +18,7 @@ LPD8806::LPD8806(uint16_t n) {
   numLEDs = n;
   // malloc 3 bytes per pixel so we dont have to hardcode the length
   pixels = (uint8_t *)malloc(numLEDs * 3); // 3 bytes per pixel
-  for (uint16_t i=0; i < numLEDs; i++) {
-    setPixelColor(i, 0, 0, 0);
-  }
+  memset(pixels, 0x80, numLEDs * 3); // Init to RGB 'off' state
 }
 
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
@@ -36,9 +34,7 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
 
   // malloc 3 bytes per pixel so we dont have to hardcode the length
   pixels = (uint8_t *)malloc(numLEDs * 3); // 3 bytes per pixel
-  for (uint16_t i=0; i < numLEDs; i++) {
-    setPixelColor(i, 0, 0, 0);
-  }
+  memset(pixels, 0x80, numLEDs * 3); // Init to RGB 'off' state
 }
 
 void LPD8806::begin(void) {
@@ -52,6 +48,9 @@ void LPD8806::begin(void) {
     // this has been tested on a 16MHz Arduino Uno
     SPI.setClockDivider(SPI_CLOCK_DIV2);
   }
+
+  // Issue initial latch to 'wake up' strip (latch length varies w/numLEDs)
+  writezeros(3 * ((numLEDs + 63) / 64));
 }
 
 uint16_t LPD8806::numPixels(void) {
@@ -81,9 +80,9 @@ inline void LPD8806::write8(uint8_t d) {
   // shiftOut(dataPin, clockPin, MSBFIRST, d);
 
   // this is the faster pin-flexible way! the pins are precomputed once only
-  for (int8_t i=7; i>=0; i--) {
+  for (uint8_t bit=0x80; bit; bit >>= 1) {
     *clkportreg &= ~clkpin;
-    if (d & (1<<i)) {
+    if (d & bit) {
       *mosiportreg |= mosipin;
     } else {
       *mosiportreg &= ~mosipin;
@@ -92,7 +91,6 @@ inline void LPD8806::write8(uint8_t d) {
   }
 
   *clkportreg &= ~clkpin;
-  
 }
 
 // Basic, push SPI data out
@@ -100,7 +98,7 @@ void LPD8806::writezeros(uint16_t n) {
   // this is the 'least efficient' way (28ms per 32-LED write)
   /*
   digitalWrite(dataPin, LOW);
-  for (uint16_t i=0; i<8*n; i++) {
+  for(uint16_t i = 8 * n; i>0; i--) {
      digitalWrite(clockPin, HIGH);
      digitalWrite(clockPin, LOW); 
   }
@@ -108,14 +106,14 @@ void LPD8806::writezeros(uint16_t n) {
 
   if (hardwareSPI) {
     // hardware SPI!
-    for (uint16_t i=0; i<8*n; i++)
+    while(n--)
       SPI.transfer(0);
     return;
   }
 
   // this is the faster pin-flexible way! 7.4ms to write 32 LEDs
   *mosiportreg &= ~mosipin;
-  for (uint16_t i=0; i<8*n; i++) {
+  for(uint16_t i = 8 * n; i>0; i--) {
     *clkportreg |= clkpin;
     *clkportreg &= ~clkpin;
   }
@@ -127,33 +125,32 @@ void LPD8806::writezeros(uint16_t n) {
 // like that, but we reverse engineered this from a strip
 // controller and it seems to work very nicely!
 void LPD8806::show(void) {
-  uint16_t i;
+  uint16_t i, nl3 = numLEDs * 3; // 3 bytes per LED
   
   // get the strip's attention
-  writezeros(4);
+  //writezeros(4);
+  // This initial latch should only be required once,
+  // moved to begin() method.
 
   // write 24 bits per pixel
   if (hardwareSPI) {
     // sped up!
-    for (i=0; i<numLEDs; i++ ) {
-      SPDR = pixels[i*3];
-      while (!(SPSR & (1<<SPIF))) {};
-      SPDR = pixels[i*3+1];
-      while (!(SPSR & (1<<SPIF))) {};
-      SPDR = pixels[i*3+2];
+    for (i=0; i<nl3; i++ ) {
+      SPDR = pixels[i];
       while (!(SPSR & (1<<SPIF))) {};
     }
   } else {
-    for (i=0; i<numLEDs; i++ ) {
-      write8(pixels[i*3]); 
-      write8(pixels[i*3+1]); 
-      write8(pixels[i*3+2]);     
+    for (i=0; i<nl3; i++ ) {
+      write8(pixels[i]); 
     }
   }
     
   // to 'latch' the data, we send just zeros
   //writezeros(3*numLEDs*2);
-  writezeros(4);
+  //writezeros(4);
+  // 20111028 pburgess: correct latch length varies --
+  // three bytes per 64 LEDs.
+  writezeros(3 * ((numLEDs + 63) / 64));
 
   // we need to have a delay here, a few ms seems to do the job
   // shorter may be OK as well - need to experiment :(
