@@ -59,18 +59,11 @@ uint16_t LPD8806::numPixels(void) {
 
 uint32_t LPD8806::Color(byte r, byte g, byte b)
 {
-  //Take the lowest 7 bits of each value and append them end to end
+  // Take the lowest 7 bits of each value and append them end to end
   // We have the top bit set high (its a 'parity-like' bit in the protocol
   // and must be set!)
 
-  uint32_t x;
-  x = g | 0x80;
-  x <<= 8;
-  x |= r | 0x80;
-  x <<= 8;
-  x |= b | 0x80;
-
-  return(x);
+  return 0x808080 | (g << 16) | (r << 8) | b;
 }
 
 // Basic, push SPI data out
@@ -161,7 +154,7 @@ void LPD8806::show(void) {
 void LPD8806::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
   uint32_t data;
 
-  if (n > numLEDs) return;
+  if (n >= numLEDs) return; // '>=' because arrays are 0-indexed
 
   pixels[n*3] = g | 0x80;
   pixels[n*3+1] = r | 0x80;
@@ -169,7 +162,7 @@ void LPD8806::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
-  if (n > numLEDs) return;
+  if (n >= numLEDs) return; // '>=' because arrays are 0-indexed
 
   pixels[n*3] = (c >> 16) | 0x80;
   pixels[n*3+1] = (c >> 8) | 0x80;
