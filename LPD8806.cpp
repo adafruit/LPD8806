@@ -63,7 +63,7 @@ uint32_t LPD8806::Color(byte r, byte g, byte b)
   // We have the top bit set high (its a 'parity-like' bit in the protocol
   // and must be set!)
 
-  return 0x808080 | (g << 16) | (r << 8) | b;
+  return 0x808080 | ((uint32_t)g << 16) | ((uint32_t)r << 8) | (uint32_t)b;
 }
 
 // Basic, push SPI data out
