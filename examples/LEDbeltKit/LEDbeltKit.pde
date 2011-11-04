@@ -24,13 +24,13 @@ void setup() {
 void loop() {
 
   // Send a simple pixel chase in...
-  colorChase(strip.Color(127,127,127), 30); // white
-  colorChase(strip.Color(127,0,0), 30);     // red
-  colorChase(strip.Color(127,127,0), 30);   // yellow
-  colorChase(strip.Color(0,127,0), 30);     // green
-  colorChase(strip.Color(0,127,127), 30);   // cyan
-  colorChase(strip.Color(0,0,127), 30);     // blue
-  colorChase(strip.Color(127,0,127), 30);   // magenta
+  colorChase(strip.Color(127,127,127), 20); // white
+  colorChase(strip.Color(127,0,0), 20);     // red
+  colorChase(strip.Color(127,127,0), 20);   // yellow
+  colorChase(strip.Color(0,127,0), 20);     // green
+  colorChase(strip.Color(0,127,127), 20);   // cyan
+  colorChase(strip.Color(0,0,127), 20);     // blue
+  colorChase(strip.Color(127,0,127), 20);   // magenta
 
   // Fill the entire strip with...
   colorWipe(strip.Color(127,0,0), 20);      // red
@@ -39,16 +39,16 @@ void loop() {
   colorWipe(strip.Color(0,0,0), 20);        // black
 
   // Color sparkles
-  dither(strip.Color(0,127,127), 60);       // cyan, slow
+  dither(strip.Color(0,127,127), 50);       // cyan, slow
   dither(strip.Color(0,0,0), 15);           // black, fast
-  dither(strip.Color(127,0,127), 60);       // magenta, slow
+  dither(strip.Color(127,0,127), 50);       // magenta, slow
   dither(strip.Color(0,0,0), 15);           // black, fast
-  dither(strip.Color(127,127,0), 60);       // yellow, slow
+  dither(strip.Color(127,127,0), 50);       // yellow, slow
   dither(strip.Color(0,0,0), 15);           // black, fast
 
   // Back-and-forth lights
-  scanner(strip.Color(127,0,0), 30);        // red, slow
-  scanner(strip.Color(0,0,127), 15);        // blue, fast
+  scanner(127,0,0, 30);        // red, slow
+  scanner(0,0,127, 15);        // blue, fast
 
   // Wavy ripple effects
   wave(strip.Color(127,0,0), 4, 20);        // candy cane
@@ -137,7 +137,7 @@ void dither(uint32_t c, uint8_t wait) {
 }
 
 // "Larson scanner" = Cylon/KITT bouncing light effect
-void scanner(uint32_t c, uint8_t wait) {
+void scanner(uint8_t r, uint8_t g, uint8_t b, uint8_t wait) {
   int i, j, pos, dir;
 
   pos = 0;
@@ -146,13 +146,21 @@ void scanner(uint32_t c, uint8_t wait) {
   for(i=0; i<((strip.numPixels()-1) * 8); i++) {
     // Draw 5 pixels centered on pos.  setPixelColor() will clip
     // any pixels off the ends of the strip, no worries there.
-    for(j=-2; j<= 2; j++) strip.setPixelColor(pos+j, c);
+    // we'll make the colors dimmer at the edges for a nice pulse
+    // look
+    strip.setPixelColor(pos - 2, strip.Color(r/4, g/4, b/4));
+    strip.setPixelColor(pos - 1, strip.Color(r/2, g/2, b/2));
+    strip.setPixelColor(pos, strip.Color(r, g, b));
+    strip.setPixelColor(pos + 1, strip.Color(r/2, g/2, b/2));
+    strip.setPixelColor(pos + 2, strip.Color(r/4, g/4, b/4));
+
     strip.show();
     delay(wait);
     // If we wanted to be sneaky we could erase just the tail end
     // pixel, but it's much easier just to erase the whole thing
     // and draw a new one next time.
-    for(j=-2; j<= 2; j++) strip.setPixelColor(pos+j, strip.Color(0,0,0));
+    for(j=-2; j<= 2; j++) 
+        strip.setPixelColor(pos+j, strip.Color(0,0,0));
     // Bounce off ends of strip
     pos += dir;
     if(pos < 0) {
