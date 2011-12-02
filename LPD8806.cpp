@@ -8,17 +8,6 @@
 
 /*****************************************************************************/
 
-// Constructor for hardware SPI use:
-LPD8806::LPD8806(uint16_t n) {
-  // Allocate 3 bytes per pixel:
-  if(NULL != (pixels = (uint8_t *)malloc(numLEDs * 3))) {
-    memset(pixels, 0x80, numLEDs * 3); // Init to RGB 'off' state
-    numLEDs     = n;
-    hardwareSPI = true;
-    pause       = 3;
-  }
-}
-
 // Constructor for bitbanged (software) SPI:
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
   // Allocate 3 bytes per pixel:
@@ -34,6 +23,17 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
     clockport    = portOutputRegister(digitalPinToPort(cpin));
     slowmo       = false;
     pause        = 3;
+  }
+}
+
+// Constructor for hardware SPI use:
+LPD8806::LPD8806(uint16_t n) {
+  // Allocate 3 bytes per pixel:
+  if(NULL != (pixels = (uint8_t *)malloc(numLEDs * 3))) {
+    memset(pixels, 0x80, numLEDs * 3); // Init to RGB 'off' state
+    numLEDs     = n;
+    hardwareSPI = true;
+    pause       = 3;
   }
 }
 
