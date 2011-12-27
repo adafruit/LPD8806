@@ -37,6 +37,10 @@ LPD8806::LPD8806(uint16_t n) {
   }
 }
 
+// Empty Constructor, used only as placeholder, library will be initialized later
+LPD8806::LPD8806() {
+}
+
 void LPD8806::begin(void) {
 
   if (hardwareSPI) {

@@ -10,6 +10,7 @@ class LPD8806 {
 
   LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin);
   LPD8806(uint16_t n);
+  LPD8806();
   void
     begin(void),
     show(void),
