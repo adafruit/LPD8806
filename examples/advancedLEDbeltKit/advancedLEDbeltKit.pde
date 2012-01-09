@@ -17,7 +17,7 @@
 #include "TimerOne.h"
 
 
-#ifdef USB_SERIAL
+#if defined(USB_SERIAL) || defined(USB_SERIAL_ADAFRUIT)
 // this is for teensyduino support
 int dataPin = 2;
 int clockPin = 1;
@@ -60,6 +60,21 @@ byte imgData[2][numPixels * 3], // Data for 2 strips worth of imagery
 int  fxVars[3][50],             // Effect instance variables (explained later)
      tCounter   = -1,           // Countdown to next transition
      transitionTime;            // Duration (in frames) of current transition
+
+// function prototypes, leave these be :)
+void renderEffect00(byte idx);
+void renderEffect01(byte idx);
+void renderEffect02(byte idx);
+void renderEffect03(byte idx);
+void renderAlpha00(void);
+void renderAlpha01(void);
+void renderAlpha02(void);
+void renderAlpha03(void);
+void callback();
+byte gamma(byte x);
+long hsv2rgb(long h, byte s, byte v);
+char fixSin(int angle);
+char fixCos(int angle);
 
 // List of image effect and alpha channel rendering functions; the code for
 // each of these appears later in this file.  Just a few to start with...

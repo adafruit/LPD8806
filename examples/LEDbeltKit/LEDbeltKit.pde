@@ -4,7 +4,7 @@
 // Example to control LPD8806-based RGB LED Modules in a strip!
 /*****************************************************************************/
 
-#ifdef USB_SERIAL
+#if defined(USB_SERIAL) || defined(USB_SERIAL_ADAFRUIT)
 // this is for teensyduino support
 int dataPin = 2;
 int clockPin = 1;
