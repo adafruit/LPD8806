@@ -4,12 +4,18 @@
  #include <WProgram.h>
 #endif
 
+
+//#define HARDWARE_SPI 1
+
 class LPD8806 {
 
  public:
 
   LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin);
+#ifdef HARDWARE_SPI
   LPD8806(uint16_t n);
+#endif
+  LPD8806();
   void
     begin(void),
     show(void),
@@ -20,8 +26,6 @@ class LPD8806 {
   uint32_t
     Color(byte, byte, byte);
 
-  boolean
-    slowmo; // If true, use digitalWrite instead of direct PORT writes
   uint8_t
     pause;  // Delay (in milliseconds) after latch
 

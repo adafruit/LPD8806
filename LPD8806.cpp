@@ -1,12 +1,12 @@
 #include "LPD8806.h"
 #include "SPI.h"
-#include "pins_arduino.h"
 
 // Arduino library to control LPD8806-based RGB LED Strips
 // (c) Adafruit industries
 // MIT license
 
 /*****************************************************************************/
+
 
 // Constructor for bitbanged (software) SPI:
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
@@ -21,11 +21,11 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
     clockpin     = cpin;
     clockpinmask = digitalPinToBitMask(cpin);
     clockport    = portOutputRegister(digitalPinToPort(cpin));
-    slowmo       = false;
     pause        = 3;
   }
 }
 
+#ifdef HARDWARE_SPI
 // Constructor for hardware SPI use:
 LPD8806::LPD8806(uint16_t n) {
   // Allocate 3 bytes per pixel:
@@ -35,6 +35,12 @@ LPD8806::LPD8806(uint16_t n) {
     hardwareSPI = true;
     pause       = 3;
   }
+}
+#endif
+
+// Empty Constructor, used only as placeholder, library will be initialized later
+LPD8806::LPD8806() {
+
 }
 
 void LPD8806::begin(void) {
@@ -48,8 +54,7 @@ void LPD8806::begin(void) {
   } else {
     pinMode(datapin , OUTPUT);
     pinMode(clockpin, OUTPUT);
-    if(slowmo) digitalWrite(clockpin, LOW);
-    else       *clockport &= ~clockpinmask; // Clock = low
+    *clockport &= ~clockpinmask; // Clock = low
   }
 
   // Issue initial latch to 'wake up' strip (latch length varies w/numLEDs)
@@ -63,12 +68,6 @@ uint16_t LPD8806::numPixels(void) {
 void LPD8806::writezeros(uint16_t n) {
   if (hardwareSPI) {
     while(n--) SPI.transfer(0);
-  } else if(slowmo) {
-    digitalWrite(datapin, LOW);
-    for(uint16_t i = 8 * n; i>0; i--) {
-      digitalWrite(clockpin, HIGH);
-      digitalWrite(clockpin, LOW);
-    }
   } else {
     *dataport &= ~datapinmask; // Data low
     for(uint16_t i = 8 * n; i>0; i--) {
@@ -84,21 +83,12 @@ void LPD8806::writezeros(uint16_t n) {
 // this from a strip controller and it seems to work very nicely!
 void LPD8806::show(void) {
   uint16_t i, nl3 = numLEDs * 3; // 3 bytes per LED
-  
+
   // write 24 bits per pixel
   if (hardwareSPI) {
     for (i=0; i<nl3; i++ ) {
       SPDR = pixels[i];
       while(!(SPSR & (1<<SPIF)));
-    }
-  } else if(slowmo) {
-    for (i=0; i<nl3; i++ ) {
-      for (uint8_t bit=0x80; bit; bit >>= 1) {
-        if(pixels[i] & bit) digitalWrite(datapin, HIGH);
-        else                digitalWrite(datapin, LOW);
-        digitalWrite(clockpin, HIGH);
-        digitalWrite(clockpin, LOW);
-      }
     }
   } else {
     for (i=0; i<nl3; i++ ) {
@@ -143,4 +133,6 @@ void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
   pixels[n*3+1] = (c >>  8) | 0x80;
   pixels[n*3+2] =  c        | 0x80;
 }
+
+
 
