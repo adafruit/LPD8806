@@ -4,14 +4,22 @@
 // Example to control LPD8806-based RGB LED Modules in a strip!
 /*****************************************************************************/
 
+#ifdef USB_SERIAL
+// this is for teensyduino support
+int dataPin = 2;
+int clockPin = 1;
+#else 
 // these are the pins we use for the LED belt kit using
 // the Leonardo pinouts
 int dataPin = 16;
 int clockPin = 15;
+#endif
 
 // Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
 LPD8806 strip = LPD8806(32, dataPin, clockPin);
+
+
 
 void setup() {
   // Start up the LED strip
@@ -20,6 +28,15 @@ void setup() {
   // Update the strip, to start they are all 'off'
   strip.show();
 }
+
+// function prototypes, do not remove these!
+void colorChase(uint32_t c, uint8_t wait);
+void colorWipe(uint32_t c, uint8_t wait);
+void dither(uint32_t c, uint8_t wait);
+void scanner(uint8_t r, uint8_t g, uint8_t b, uint8_t wait);
+void wave(uint32_t c, int cycles, uint8_t wait);
+void rainbowCycle(uint8_t wait);
+uint32_t Wheel(uint16_t WheelPos);
 
 void loop() {
 

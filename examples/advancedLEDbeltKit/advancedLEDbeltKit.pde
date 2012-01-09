@@ -16,10 +16,17 @@
 #include "LPD8806.h"
 #include "TimerOne.h"
 
+
+#ifdef USB_SERIAL
+// this is for teensyduino support
+int dataPin = 2;
+int clockPin = 1;
+#else 
 // these are the pins we use for the LED belt kit using
 // the Leonardo pinouts
-int dataPin = 16;   
-int clockPin = 15; 
+int dataPin = 16;
+int clockPin = 15;
+#endif
 
 
 // Declare the number of pixels in strand; 32 = 32 pixels in a row.  The
