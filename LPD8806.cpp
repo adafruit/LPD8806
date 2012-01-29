@@ -212,9 +212,9 @@ void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
 uint32_t LPD8806::getPixelColor(uint16_t n) {
   if(n < numLEDs) {
     uint16_t ofs = n * 3;
-    return ((pixels[ofs    ] << 16) |
-            (pixels[ofs + 1] <<  8) |
-             pixels[ofs + 2]) & 0x7f7f7f;
+    return ((uint32_t)((uint32_t)pixels[ofs    ] << 16) |
+            (uint32_t)((uint32_t)pixels[ofs + 1] <<  8) |
+             (uint32_t)pixels[ofs + 2]) & 0x7f7f7f;
   }
 
   return 0; // Pixel # is out of bounds
