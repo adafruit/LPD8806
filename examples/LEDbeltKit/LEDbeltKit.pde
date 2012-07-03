@@ -3,21 +3,15 @@
 
 // Example to control LPD8806-based RGB LED Modules in a strip!
 /*****************************************************************************/
-
-#if defined(USB_SERIAL) || defined(USB_SERIAL_ADAFRUIT)
-// this is for teensyduino support
-int dataPin = 2;
-int clockPin = 1;
-#else 
-// these are the pins we use for the LED belt kit using
-// the Leonardo pinouts
-int dataPin = 16;
-int clockPin = 15;
-#endif
+//This is an updated file with a couple more effects.. I added the new header files which took away the ability of strip.clear.. so if 
+// you want to get everything to run right, do not use the updated c files. :) I hope to have more soon! HOORAY FOR ADAFRUIT! 
+// thanks for the cool light strips! -pete n max
 
 // Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
+
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
-LPD8806 strip = LPD8806(32, dataPin, clockPin);
+int const numPixels = 32;
+LPD8806 strip = LPD8806(numPixels,13,11);
 
 
 
@@ -39,7 +33,12 @@ void rainbowCycle(uint8_t wait);
 uint32_t Wheel(uint16_t WheelPos);
 
 void loop() {
-
+CenterWipe();
+multiColorWipe();
+CrisCrossX3(20);//wait time
+coolpoop(5);//wait time... Im not really sure what this is... :) EVERYTHING IS A WORK IN PROGRESS..
+poopface(20);// not sure...
+sparkle(10, 10, random(0)); // numSparkles, maxWait, BGColor(working on being able to set random(256 for random BGcolor)
   // Send a simple pixel chase in...
   colorChase(strip.Color(127,127,127), 20); // white
   colorChase(strip.Color(127,0,0), 20);     // red
@@ -81,6 +80,118 @@ void loop() {
 }
 
 // Cycle through the color wheel, equally spaced around the belt
+void sparkle(uint8_t numsparkles, uint8_t maxwait, uint16_t bgcolor){
+ int i,j;
+  for (j=0; j<50; j++){
+  for (i=0; i < strip.numPixels(); i++) {
+   if(bgcolor==0){
+    strip.setPixelColor(i,0);}
+   else{ strip.setPixelColor(i,Wheel(bgcolor));};
+   }
+  for (i=0; i < (numsparkles); i++) {
+   strip.setPixelColor(random(strip.numPixels()), random(Wheel(384)));
+   strip.show();
+  delay(random(maxwait));
+}
+}
+}
+    void poopface(uint8_t wait){
+int i,j;
+ for (j=0; j<384; j++){
+  for (i =0;i<=strip.numPixels() ;i++){
+    j=j+5;
+    strip.setPixelColor(i*2, Wheel( (i + j) % 384));
+     strip.setPixelColor(i/2, Wheel( (i + j) % 384));
+     strip.setPixelColor(i*3, Wheel( (i + j) % 384));
+    strip.setPixelColor(i, Wheel( (i + j) % 384)); 
+   delay(wait);
+   strip.show();
+delay(wait);
+//strip.clear(); stopped working when i updated the c files..
+  }
+  }
+  }
+ void CrisCrossX3(uint8_t wait) {
+   int i,j,k; // declare intejers i and j
+  uint32_t insideColors; // ask for 32 bit registry
+  uint32_t BGColor; // ask for 32 bit registry
+  uint32_t outsideColors; // ask for 32 bit registry
+ 
+  insideColors = strip.Color(200, 200, 200); // white - outside running color
+ BGColor = strip.Color(0,0,200);
+  outsideColors = strip.Color(0,127,0);       // green - outside running color
+   for (i=strip.numPixels(), j=0; i >= -1,j <=strip.numPixels(); i--,j++) { // full strip, count down to -1
+    strip.setPixelColor(i, outsideColors);// Right side
+    strip.setPixelColor(i-1, insideColors);  //  
+    strip.setPixelColor(i-2, outsideColors);//
+    strip.setPixelColor(i + 1, BGColor); // 
+    
+    strip.setPixelColor(j, outsideColors);// left side
+    strip.setPixelColor(j+1, insideColors);  //  
+    strip.setPixelColor(j+2, outsideColors); //
+    strip.setPixelColor(j - 1,BGColor); //
+ 
+ strip.show();
+    delay(wait);
+  }
+   }
+ void multiColorWipe(){
+   int i;
+  uint32_t c;
+  uint32_t b;
+uint32_t d;
+  c = strip.Color(200, 200, 200); // white - running color
+  b = strip.Color(0, 0, 255);     // blue - background color
+  d = strip.Color(0,255,0);
+  for (i=strip.numPixels(); i >= -1; i--) { // half of strip, count down to 0
+    strip.setPixelColor(i, d);// left pixel to wipe color(white)
+    strip.setPixelColor(i-1, c);  //  
+    strip.setPixelColor(i-2, d);
+    strip.setPixelColor(i + 1, b); // left pixel back to background color (blue)
+ strip.show();
+    delay(25);
+  }
+}
+
+ void coolpoop(uint8_t wait) {
+  int i,q;
+   uint32_t c = strip.Color(127, 127, 127);  // white - running color
+    uint32_t b = strip.Color(0, 0, 127); // blue - background color
+    uint32_t d = strip.Color(0,127,0);// green - outer running colors
+
+
+
+  for(i=0; i < strip.numPixels(); i++) { // half of strip, count down to 0
+    for(q=0; q < i; q++){
+      strip.setPixelColor(i+q, Wheel(c));// left pixel to wipe color(white)
+      strip.setPixelColor(i-q, Wheel(b));  //  
+      strip.setPixelColor(i+q-1 ,Wheel(d));
+      q++;
+      strip.show();
+      delay(wait);
+    }
+  }
+
+  strip.show();
+  delay(wait);
+}
+
+void CenterWipe(){
+ int i;
+ uint32_t c;
+ uint32_t b;
+ c = strip.Color(200, 200, 200); // white - running color
+ b = strip.Color(0, 0, 255);     // red - background color
+  for (i=strip.numPixels() / 2 - 1; i >= -1; i--) { // half of strip, count down to 0
+   strip.setPixelColor(i, c);     // left pixel
+   strip.setPixelColor(i + 1, b); // left pixel
+   strip.setPixelColor(strip.numPixels() - 1 - i, c); // right pixel
+  if (i < 15) strip.setPixelColor(strip.numPixels() - 2 - i, b); // right pixel
+   strip.show();
+  delay(25);
+  }
+}
+
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
 
