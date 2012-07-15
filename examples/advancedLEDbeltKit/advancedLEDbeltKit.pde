@@ -24,20 +24,21 @@ int clockPin = 1;
 #else 
 // these are the pins we use for the LED belt kit using
 // the Leonardo pinouts
-int dataPin = 16;
-int clockPin = 15;
+int dataPin = 2;
+int clockPin = 1;
 #endif
 
 
 // Declare the number of pixels in strand; 32 = 32 pixels in a row.  The
 // LED strips have 32 LEDs per meter, but you can extend or cut the strip.
-const int numPixels = 32;
+const int numPixels = 56
+;
 // 'const' makes subsequent array declarations possible, otherwise there
 // would be a pile of malloc() calls later.
 
 // Instantiate LED strip; arguments are the total number of pixels in strip,
 // the data pin number and clock pin number:
-LPD8806 strip = LPD8806(numPixels, dataPin, clockPin);
+LPD8806 strip = LPD8806(numPixels);//, dataPin, clockPin);
 
 // You can also use hardware SPI for ultra-fast writes by omitting the data
 // and clock pin arguments.  This is faster, but the data and clock are then
@@ -60,21 +61,31 @@ byte imgData[2][numPixels * 3], // Data for 2 strips worth of imagery
 int  fxVars[3][50],             // Effect instance variables (explained later)
      tCounter   = -1,           // Countdown to next transition
      transitionTime;            // Duration (in frames) of current transition
+int  pbIn = 0;                  // Interrupt 0 is on DIGITAL PIN 2!
+int  pb2In = 1;                 // Interrupt 1 is on DIGITAL PIN 3!
+float fxFloats[3][4];
+static unsigned long last_interrupt_time = 0;
+const unsigned int DEBOUNCE_TIME = 200;
 
 // function prototypes, leave these be :)
 void renderEffect00(byte idx);
 void renderEffect01(byte idx);
 void renderEffect02(byte idx);
 void renderEffect03(byte idx);
+void renderEffect04(byte idx);
+void renderEffect05(byte idx);
 void renderAlpha00(void);
 void renderAlpha01(void);
 void renderAlpha02(void);
 void renderAlpha03(void);
 void callback();
+void flashStrip();
+void changeArray();
 byte gamma(byte x);
 long hsv2rgb(long h, byte s, byte v);
 char fixSin(int angle);
 char fixCos(int angle);
+int mapInt(float x, float in_min, float in_max, int out_min, int out_max);
 
 // List of image effect and alpha channel rendering functions; the code for
 // each of these appears later in this file.  Just a few to start with...
@@ -83,11 +94,15 @@ void (*renderEffect[])(byte) = {
   renderEffect00,
   renderEffect01,
   renderEffect02,
-  renderEffect03 },
+  renderEffect03,
+  renderEffect04,
+  renderEffect05 
+},
 (*renderAlpha[])(void)  = {
   renderAlpha00,
   renderAlpha01,
-  renderAlpha02 };
+  renderAlpha02 
+};
 
 // ---------------------------------------------------------------------------
 
@@ -96,7 +111,7 @@ void setup() {
   // the callback function will be invoked immediately when attached, and
   // the first thing the calback does is update the strip.
   strip.begin();
-
+  
   // Initialize random number generator from a floating analog input.
   randomSeed(analogRead(0));
   memset(imgData, 0, sizeof(imgData)); // Clear image data
@@ -108,11 +123,43 @@ void setup() {
   // effects and transitions would jump around in speed...not attractive).
   Timer1.initialize();
   Timer1.attachInterrupt(callback, 1000000 / 60); // 60 frames/second
+  
+  attachInterrupt(pbIn, flashStrip, FALLING);
+  attachInterrupt(pb2In, changeArray, FALLING);
 }
 
 void loop() {
   // Do nothing.  All the work happens in the callback() function below,
   // but we still need loop() here to keep the compiler happy.
+}
+
+void flashStrip(){
+  unsigned long interrupt_time = millis();
+  int i;
+  for(i=0; i<numPixels; i++) {
+    strip.setPixelColor(i, 127, 127, 127);
+  }
+  strip.show();
+}
+void changeArray(){
+  unsigned long interrupt_time = millis();
+  //if (interrupt_time - last_interrupt_time > DEBOUNCE_TIME) {
+
+    int i;
+    for(i=0; i<numPixels; i++) {
+      strip.setPixelColor(i, 127, 127, 127);
+    }
+    strip.show();
+    
+//    renderEffect[0] = renderEffect04;
+//    renderEffect[1] = renderEffect05;
+//    renderEffect[2] = renderEffect04;
+//    renderEffect[3] = renderEffect05;
+//    renderEffect[4] = renderEffect04;
+//    renderEffect[5] = renderEffect05;
+
+  //}
+  //last_interrupt_time = interrupt_time;
 }
 
 // Timer1 interrupt handler.  Called at equal intervals; 60 Hz by default.
@@ -316,14 +363,117 @@ void renderEffect03(byte idx) {
               (pgm_read_byte(&flagTable[idx2 + 1]) * b)) >> 8;
     *ptr++ = ((pgm_read_byte(&flagTable[idx1 + 2]) * a) +
               (pgm_read_byte(&flagTable[idx2 + 2]) * b)) >> 8;
-    s += fxVars[idx][3] + fixCos(fxVars[idx][4] + fxVars[idx][1] *
-      i / numPixels);
+    s += fxVars[idx][3] + fixCos(fxVars[idx][4] + fxVars[idx][1] * i / numPixels);
   }
 
   fxVars[idx][4] += fxVars[idx][2];
   if(fxVars[idx][4] >= 720) fxVars[idx][4] -= 720;
 }
 
+//simple single pixel chase
+void renderEffect04(byte idx) {
+  if(fxVars[idx][0] == 0) { // Initialize effect?
+    fxVars[idx][1] = random(1536); // Random hue
+    fxFloats[idx][0] = random(100,1000) / 1000.0 ; // random speed 0.0 - 1.0
+    fxFloats[idx][1] = 1; // Current position
+    fxVars[idx][4] = 4 + random(10); // random spread
+    fxVars[idx][5] = fxVars[idx][4] * -2;
+    fxVars[idx][0] = 1; // Effect initialized
+  }
+
+  byte *ptr = &imgData[idx][0];
+  float distance = 0.0, modifier = 0.0;
+  int   hue = 0, saturation = 0;
+  long color, i;
+  for(i=0; i<numPixels; i++) {
+    hue = 255;
+    modifier = 0;
+    if(i >= numPixels - fxVars[idx][4] && fxFloats[idx][1] <= fxVars[idx][4]) {
+      modifier = numPixels;
+    }
+    if(i <= fxVars[idx][4] && fxFloats[idx][1] >= numPixels - fxVars[idx][4]) {
+      modifier = -numPixels;
+    }
+    distance = min(abs(i - fxFloats[idx][1] - modifier), fxVars[idx][4]) * -2;
+    
+    saturation = mapInt(distance, fxVars[idx][5], 0.0, 0, 255);
+    //saturation = fxVars[idx][3] == i ? 255 : 0;
+    color = hsv2rgb(fxVars[idx][1], hue, saturation);
+    *ptr++ = color >> 16; *ptr++ = color >> 8; *ptr++ = color;
+  }
+  fxFloats[idx][1] += fxFloats[idx][0];
+  if(fxFloats[idx][1] >= numPixels){
+    fxFloats[idx][1] -= numPixels;
+  }
+}
+//simple dual pixel chasin in opposite directions
+void renderEffect05(byte idx) {
+  if(fxVars[idx][0] == 0) { // Initialize effect?
+    fxVars[idx][1] = random(768, 1536); // Random hue
+    fxFloats[idx][0] = random(100,1000) / 1000.0 ; // random speed 0.0 - 1.0
+    fxFloats[idx][1] = 1; // Current position
+    fxVars[idx][4] = 4 + random(10); // random spread
+    fxVars[idx][5] = fxVars[idx][4] * -2;
+
+    fxVars[idx][6] = random(0,700); // Random hue far away from first color
+    fxFloats[idx][2] = random(100,1000) / -1000.0 ; // random speed 0.0 - 1.0
+    fxFloats[idx][3] = (float)numPixels; // Current position
+    fxVars[idx][9] = 4 + random(10); // random spread
+    fxVars[idx][10] = fxVars[idx][9] * -2;
+
+    fxVars[idx][0] = 1; // Effect initialized
+  }
+
+  byte *ptr = &imgData[idx][0], r1, g1, b1, r2, g2, b2, r, g, b;
+  float distance = 0.0, modifier1 = 0.0,modifier2 = 0.0;
+  int   hue = 0, saturation = 0;
+  long color1, color2, i;
+
+  for(i=0; i<numPixels; i++) {
+    hue = 255;
+    modifier1 = 0;
+    modifier2 = 0;
+
+    if(i >= numPixels - fxVars[idx][4] && fxFloats[idx][1] <= fxVars[idx][4]) {
+      modifier1 = numPixels;
+    }
+    if(i <= fxVars[idx][4] && fxFloats[idx][1] >= numPixels - fxVars[idx][4]) {
+      modifier1 = -numPixels;
+    }
+    
+    if(i >= numPixels - fxVars[idx][9] && fxFloats[idx][3] <= fxVars[idx][9]) {
+      modifier2 = numPixels;
+    }
+    if(i <= fxVars[idx][9] && fxFloats[idx][3] >= numPixels - fxVars[idx][9]) {
+      modifier2 = -numPixels;
+    }
+    
+    distance = min(abs(i - fxFloats[idx][1] - modifier1), fxVars[idx][4]) * -2;
+    saturation = mapInt(distance, fxVars[idx][5], 0.0, 0, 255);
+    color1 = hsv2rgb(fxVars[idx][1], hue, saturation);
+
+    distance = min(abs(i - fxFloats[idx][3] - modifier2), fxVars[idx][9]) * -2;
+    saturation = mapInt(distance, fxVars[idx][10], 0.0, 0, 255);
+    color2 = hsv2rgb(fxVars[idx][6], hue, saturation);
+
+
+    r1 = color2 >> 16; g1 = color2 >> 8; b1 = color2;
+    r2 = color1 >> 16; g2 = color1 >> 8; b2 = color1;
+    r = min(r1 + r2, 255);
+    g = min(g1 + g2, 255);
+    b = min(b1 + b2, 255);
+    *ptr++ = r; *ptr++ = g; *ptr++ = b;
+  }
+
+  fxFloats[idx][1] += fxFloats[idx][0];
+  if(fxFloats[idx][1] >= numPixels){
+    fxFloats[idx][1] -= numPixels;
+  }
+  fxFloats[idx][3] += fxFloats[idx][2];
+  if(fxFloats[idx][3] <= 0){
+    fxFloats[idx][3] += numPixels;
+  }
+}
 // TO DO: Add more effects here...Larson scanner, etc.
 
 // ---------------------------------------------------------------------------
@@ -521,3 +671,7 @@ char fixCos(int angle) {
                        pgm_read_byte(&sineTable[angle - 540])) ; // Quad 4
 }
 
+int mapInt(float x, float in_min, float in_max, int out_min, int out_max)
+{
+  return (int) (x - in_min) * ((float)out_max - (float)out_min) / (in_max - in_min) + (float)out_min;
+}
