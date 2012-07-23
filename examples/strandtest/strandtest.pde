@@ -5,20 +5,25 @@
 
 /*****************************************************************************/
 
-// Choose which 2 pins you will use for output.
-// Can be any valid output pins.
-int dataPin = 2;   
-int clockPin = 3; 
+// Number of RGB LEDs in strand:
+int nLEDs = 32;
 
-// Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
-// The LED strips are 32 LEDs per meter but you can extend/cut the strip
+// Chose 2 pins for output; can be any valid output pins:
+int dataPin  = 2;
+int clockPin = 3;
+
+// First parameter is the number of LEDs in the strand.  The LED strips
+// are 32 LEDs per meter but you can extend or cut the strip.  Next two
+// parameters are SPI data and clock pins:
 LPD8806 strip = LPD8806(32, dataPin, clockPin);
 
-// you can also use hardware SPI, for ultra fast writes by leaving out the
-// data and clock pin arguments. This will 'fix' the pins to the following:
-// on Arduino 168/328 thats data = 11, and clock = pin 13
-// on Megas thats data = 51, and clock = 52 
-//LPD8806 strip = LPD8806(32);
+// You can optionally use hardware SPI for faster writes, just leave out
+// the data and clock pin parameters.  But this does limit use to very
+// specific pins on the Arduino.  For "classic" Arduinos (Uno, Duemilanove,
+// etc.), data = pin 11, clock = pin 13.  For Arduino Mega, data = pin 51,
+// clock = pin 52.  For 32u4 Breakout Board+ and Teensy, data = pin B2,
+// clock = pin B1.  For Leonardo, this can ONLY be done on the ICSP pins.
+//LPD8806 strip = LPD8806(nLEDs);
 
 void setup() {
   // Start up the LED strip
@@ -30,20 +35,20 @@ void setup() {
 
 
 void loop() {
-  colorChase(strip.Color(127,127,127), 10);
 
   // Send a simple pixel chase in...
-  colorChase(strip.Color(127,0,0), 10);  	// full brightness red
-  colorChase(strip.Color(127,127,0), 10);	// orange
-  colorChase(strip.Color(0,127,0), 10);		// green
-  colorChase(strip.Color(0,127,127), 10);	// teal
-  colorChase(strip.Color(0,0,127), 10);		// blue
-  colorChase(strip.Color(127,0,127), 10);	// violet
+  colorChase(strip.Color(127, 127, 127), 50); // White
+  colorChase(strip.Color(127,   0,   0), 50); // Red
+  colorChase(strip.Color(127, 127,   0), 50); // Yellow
+  colorChase(strip.Color(  0, 127,   0), 50); // Green
+  colorChase(strip.Color(  0, 127, 127), 50); // Cyan
+  colorChase(strip.Color(  0,   0, 127), 50); // Blue
+  colorChase(strip.Color(127,   0, 127), 50); // Violet
 
-  // fill the entire strip with...
-  colorWipe(strip.Color(127,0,0), 10);		// red
-  colorWipe(strip.Color(0, 127,0), 10);		// green
-  colorWipe(strip.Color(0,0,127), 10);		// blue
+  // Fill the entire strip with...
+  colorWipe(strip.Color(127,   0,   0), 50);  // Red
+  colorWipe(strip.Color(  0, 127,   0), 50);  // Green
+  colorWipe(strip.Color(  0,   0, 127), 50);  // Blue
 
   rainbow(10);
   rainbowCycle(0);  // make it go through the cycle fairly fast
@@ -79,11 +84,10 @@ void rainbowCycle(uint8_t wait) {
   }
 }
 
-// fill the dots one after the other with said color
-// good for testing purposes
+// Fill the dots progressively along the strip.
 void colorWipe(uint32_t c, uint8_t wait) {
   int i;
-  
+
   for (i=0; i < strip.numPixels(); i++) {
       strip.setPixelColor(i, c);
       strip.show();
@@ -91,25 +95,22 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
-// Chase a dot down the strip
-// good for testing purposes
+// Chase one dot down the full strip.
 void colorChase(uint32_t c, uint8_t wait) {
   int i;
-  
-  for (i=0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, 0);  // turn all pixels off
-  } 
-  
-  for (i=0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, c);
-      if (i == 0) { 
-        strip.setPixelColor(strip.numPixels()-1, 0);
-      } else {
-        strip.setPixelColor(i-1, 0);
-      }
-      strip.show();
-      delay(wait);
+
+  // Start by turning all pixels off:
+  for(i=0; i<strip.numPixels(); i++) strip.setPixelColor(i, 0);
+
+  // Then display one pixel at a time:
+  for(i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, c); // Set new pixel 'on'
+    strip.show();              // Refresh LED states
+    strip.setPixelColor(i, 0); // Erase pixel, but don't refresh!
+    delay(wait);
   }
+
+  strip.show(); // Refresh to turn off last pixel
 }
 
 /* Helper functions */

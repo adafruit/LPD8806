@@ -26,12 +26,6 @@ class LPD8806 {
     Color(byte, byte, byte),
     getPixelColor(uint16_t n);
 
-  // These primarily exist for debugging and will likely come out later:
-  boolean
-    slowmo; // If true, use digitalWrite instead of direct PORT writes
-  uint8_t
-    pause;  // Delay (in milliseconds) after latch
-
  private:
 
   uint16_t
@@ -45,7 +39,7 @@ class LPD8806 {
   void
     alloc(uint16_t n),
     startSPI(void),
-    writeLatch(uint16_t n);
+    writeLatch(void);
   boolean
     hardwareSPI, // If 'true', using hardware SPI
     begun;       // If 'true', begin() method was previously invoked

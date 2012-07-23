@@ -22,7 +22,7 @@ LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
 // specific pins on the Arduino.  For "classic" Arduinos (Uno, Duemilanove,
 // etc.), data = pin 11, clock = pin 13.  For Arduino Mega, data = pin 51,
 // clock = pin 52.  For 32u4 Breakout Board+ and Teensy, data = pin B2,
-// clock = pin B1.
+// clock = pin B1.  For Leonardo, this can ONLY be done on the ICSP pins.
 //LPD8806 strip = LPD8806(nLEDs);
 
 void setup() {
