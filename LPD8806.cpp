@@ -9,24 +9,18 @@
 
 // Constructor for use with hardware SPI (specific clock/data pins):
 LPD8806::LPD8806(uint16_t n) {
-  alloc(n);
+  pixels = NULL;
+  begun  = false;
+  updateLength(n);
   updatePins();
 }
 
 // Constructor for use with arbitrary clock/data pins:
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
-  alloc(n);
+  pixels = NULL;
+  begun  = false;
+  updateLength(n);
   updatePins(dpin, cpin);
-}
-
-// Allocate 3 bytes per pixel, init to RGB 'off' state:
-void LPD8806::alloc(uint16_t n) {
-  // Allocate 3 bytes per pixel:
-  if(NULL != (pixels = (uint8_t *)malloc(n * 3))) {
-    memset(pixels, 0x80, n * 3); // Init to RGB 'off' state
-    numLEDs = n;
-  } else numLEDs = 0;
-  begun = false;
 }
 
 // via Michael Vogt/neophob: empty constructor is used when strip length
@@ -43,13 +37,8 @@ LPD8806::LPD8806(void) {
 
 // Activate hard/soft SPI as appropriate:
 void LPD8806::begin(void) {
-  if(hardwareSPI == true) {
-    startSPI();
-  } else {
-    pinMode(datapin, OUTPUT);
-    pinMode(clkpin , OUTPUT);
-    writeLatch();
-  }
+  if(hardwareSPI == true) startSPI();
+  else                    startBitbang();
   begun = true;
 }
 
@@ -68,25 +57,23 @@ void LPD8806::updatePins(void) {
 // Change pin assignments post-constructor, using arbitrary pins:
 void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 
-  if(begun == true) { // If begin() was previously invoked...
-    // If previously using hardware SPI, turn that off:
-    if(hardwareSPI == true) SPI.end();
-    // Regardless, now enable output on 'soft' SPI pins:
-    pinMode(dpin, OUTPUT);
-    pinMode(cpin, OUTPUT);
-    writeLatch();
-  } // Otherwise, pins are not set to outputs until begin() is called.
-
-  // Note: any prior clock/data pin directions are left as-is and are
-  // NOT restored as inputs!
-
-  hardwareSPI = false;
   datapin     = dpin;
   clkpin      = cpin;
   clkport     = portOutputRegister(digitalPinToPort(cpin));
   clkpinmask  = digitalPinToBitMask(cpin);
   dataport    = portOutputRegister(digitalPinToPort(dpin));
   datapinmask = digitalPinToBitMask(dpin);
+
+  if(begun == true) { // If begin() was previously invoked...
+    // If previously using hardware SPI, turn that off:
+    if(hardwareSPI == true) SPI.end();
+    startBitbang(); // Regardless, now enable 'soft' SPI outputs
+  } // Otherwise, pins are not set to outputs until begin() is called.
+
+  // Note: any prior clock/data pin directions are left as-is and are
+  // NOT restored as inputs!
+
+  hardwareSPI = false;
 }
 
 // Enable SPI hardware and set up protocol details:
@@ -102,38 +89,31 @@ void LPD8806::startSPI(void) {
   SPDR = 0; // 'Prime' the SPI bus with initial latch (no wait)
 }
 
-uint16_t LPD8806::numPixels(void) {
-  return numLEDs;
+// Enable software SPI pins and issue initial latch:
+void LPD8806::startBitbang() {
+  pinMode(datapin, OUTPUT);
+  pinMode(clkpin , OUTPUT);
+  *dataport &= ~datapinmask; // Data is held low throughout (latch = 0)
+  for(uint8_t i = 8; i>0; i--) {
+    *clkport |=  clkpinmask;
+    *clkport &= ~clkpinmask;
+  }
 }
 
 // Change strip length (see notes with empty constructor, above):
 void LPD8806::updateLength(uint16_t n) {
   if(pixels != NULL) free(pixels); // Free existing data (if any)
-  if(NULL != (pixels = (uint8_t *)malloc(n * 3))) { // Alloc new data
-    memset(pixels, 0x80, n * 3); // Init to RGB 'off' state
-    numLEDs = n;
-  } else numLEDs = 0;
+  numLEDs = n;
+  n      *= 3; // 3 bytes per pixel
+  if(NULL != (pixels = (uint8_t *)malloc(n + 1))) { // Alloc new data
+    memset(pixels, 0x80, n); // Init to RGB 'off' state
+    pixels[n]    = 0;        // Last byte is always zero for latch
+  } else numLEDs = 0;        // else malloc failed
   // 'begun' state does not change -- pins retain prior modes
-
-  if(begun == true) writeLatch();
 }
 
-void LPD8806::writeLatch(void) {
-
-  if (hardwareSPI) {
-    while(!(SPSR & (1<<SPIF))); // Wait for prior byte out to complete
-    SPDR = 0;                   // Issue new byte
-  } else {
-    *dataport &= ~datapinmask; // Data is held low throughout
-    for(uint8_t i = 8; i>0; i--) {
-      *clkport |=  clkpinmask;
-      *clkport &= ~clkpinmask;
-    }
-  }
-
-  // Might need a slight delay here, on the order of a few milliseconds.
-  // Or maybe not.  Commented out for the time being.
-  // delay(3);
+uint16_t LPD8806::numPixels(void) {
+  return numLEDs;
 }
 
 // This is how data is pushed to the strip.  Unfortunately, the company
@@ -141,16 +121,16 @@ void LPD8806::writeLatch(void) {
 // to sign an NDA or something stupid like that, but we reverse engineered
 // this from a strip controller and it seems to work very nicely!
 void LPD8806::show(void) {
-  uint16_t i, nl3 = numLEDs * 3; // 3 bytes per LED
+  uint16_t i, n3 = numLEDs * 3 + 1; // 3 bytes per LED + 1 for latch
   
   // write 24 bits per pixel
   if (hardwareSPI) {
-    for (i=0; i<nl3; i++ ) {
+    for (i=0; i<n3; i++ ) {
       while(!(SPSR & (1<<SPIF))); // Wait for prior byte out
       SPDR = pixels[i];           // Issue new byte
     }
   } else {
-    for (i=0; i<nl3; i++ ) {
+    for (i=0; i<n3; i++ ) {
       for (uint8_t bit=0x80; bit; bit >>= 1) {
         if(pixels[i] & bit) *dataport |=  datapinmask;
         else                *dataport &= ~datapinmask;
@@ -159,8 +139,6 @@ void LPD8806::show(void) {
       }
     }
   }
-
-  writeLatch(); // Write latch at end of data
 }
 
 // Convert separate R,G,B into combined 32-bit GRB color:

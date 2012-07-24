@@ -37,9 +37,8 @@ class LPD8806 {
   volatile uint8_t
     *clkport  , *dataport;   // Clock & data PORT registers
   void
-    alloc(uint16_t n),
-    startSPI(void),
-    writeLatch(void);
+    startBitbang(void),
+    startSPI(void);
   boolean
     hardwareSPI, // If 'true', using hardware SPI
     begun;       // If 'true', begin() method was previously invoked
