@@ -15,7 +15,7 @@ int clockPin = 3;
 // First parameter is the number of LEDs in the strand.  The LED strips
 // are 32 LEDs per meter but you can extend or cut the strip.  Next two
 // parameters are SPI data and clock pins:
-LPD8806 strip = LPD8806(32, dataPin, clockPin);
+LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
 
 // You can optionally use hardware SPI for faster writes, just leave out
 // the data and clock pin parameters.  But this does limit use to very
