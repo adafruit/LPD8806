@@ -1,6 +1,6 @@
-// THIS PROGRAM USES AN INORDINATE AMOUNT OF RAM IN ORDER TO ACHIEVE ITS
-// BUTTERY-SMOOTH ANIMATION.  IT *WILL* *NOT* *WORK* ON REALLY LONG LED
-// STRIPS.  See the 'strandtest' sketch for a simpler and less RAM-
+// THIS PROGRAM *WILL* *NOT* *WORK* ON REALLY LONG LED STRIPS.  IT USES
+// AN INORDINATE AMOUNT OF RAM IN ORDER TO ACHIEVE ITS BUTTERY-SMOOTH
+// ANIMATION.  See the 'strandtest' sketch for a simpler and less RAM-
 // intensive example that can process more LEDs (100+).
 
 // Example to control LPD8806-based RGB LED Modules in a strip; originally
