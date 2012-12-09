@@ -122,10 +122,15 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 
   datapin     = dpin;
   clkpin      = cpin;
+  clkport = dataport = 0;
+  clkpinmask = datapinmask = 0;
+
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328__) || defined(__AVR_ATmega8__) || (__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
   clkport     = portOutputRegister(digitalPinToPort(cpin));
   clkpinmask  = digitalPinToBitMask(cpin);
   dataport    = portOutputRegister(digitalPinToPort(dpin));
   datapinmask = digitalPinToBitMask(dpin);
+#endif
 
   if(begun == true) { // If begin() was previously invoked...
     // If previously using hardware SPI, turn that off:
@@ -139,15 +144,22 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
   hardwareSPI = false;
 }
 
+#ifndef SPI_CLOCK_DIV8
+  #define SPI_CLOCK_DIV8 4
+#endif
+
 // Enable SPI hardware and set up protocol details:
 void LPD8806::startSPI(void) {
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setDataMode(SPI_MODE0);
+
   SPI.setClockDivider(SPI_CLOCK_DIV8);  // 2 MHz
   // SPI bus is run at 2MHz.  Although the LPD8806 should, in theory,
   // work up to 20MHz, the unshielded wiring from the Arduino is more
   // susceptible to interference.  Experiment and see what you get.
+
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328__) || defined(__AVR_ATmega8__) || (__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
 
   // Issue initial latch/reset to strip:
   SPDR = 0; // Issue initial byte
@@ -155,16 +167,32 @@ void LPD8806::startSPI(void) {
     while(!(SPSR & (1<<SPIF))); // Wait for prior byte out
     SPDR = 0;                   // Issue next byte
   }
+#else
+  SPI.transfer(0);
+  for(uint16_t i=((numLEDs+31)/32)-1; i>0; i--) {
+    SPI.transfer(0);
+  }
+#endif
 }
 
 // Enable software SPI pins and issue initial latch:
 void LPD8806::startBitbang() {
   pinMode(datapin, OUTPUT);
   pinMode(clkpin , OUTPUT);
-  *dataport &= ~datapinmask; // Data is held low throughout (latch = 0)
-  for(uint16_t i=((numLEDs+31)/32)*8; i>0; i--) {
-    *clkport |=  clkpinmask;
-    *clkport &= ~clkpinmask;
+  if (dataport != 0) {
+    // use low level bitbanging when we can
+    *dataport &= ~datapinmask; // Data is held low throughout (latch = 0)
+    for(uint16_t i=((numLEDs+31)/32)*8; i>0; i--) {
+      *clkport |=  clkpinmask;
+      *clkport &= ~clkpinmask;
+    }
+  } else {
+    // can't do low level bitbanging, revert to digitalWrite
+    digitalWrite(datapin, LOW);
+    for(uint16_t i=((numLEDs+31)/32)*8; i>0; i--) {
+      digitalWrite(clkpin, HIGH);
+      digitalWrite(clkpin, LOW);
+    }
   }
 }
 
@@ -199,18 +227,30 @@ void LPD8806::show(void) {
   // flat buffer and issued the same regardless of purpose.
   if(hardwareSPI) {
     while(i--) {
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined (__AVR_ATmega328__) || defined(__AVR_ATmega8__) || (__AVR_ATmega1281__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
       while(!(SPSR & (1<<SPIF))); // Wait for prior byte out
       SPDR = *ptr++;              // Issue new byte
+#else
+      SPI.transfer(*ptr++);
+#endif
     }
   } else {
     uint8_t p, bit;
+
     while(i--) {
       p = *ptr++;
       for(bit=0x80; bit; bit >>= 1) {
-        if(p & bit) *dataport |=  datapinmask;
-        else        *dataport &= ~datapinmask;
-        *clkport |=  clkpinmask;
-        *clkport &= ~clkpinmask;
+	if (dataport != 0) {
+	  if(p & bit) *dataport |=  datapinmask;
+	  else        *dataport &= ~datapinmask;
+	  *clkport |=  clkpinmask;
+	  *clkport &= ~clkpinmask;
+	} else {
+	  if (p&bit) digitalWrite(datapin, HIGH);
+	  else digitalWrite(datapin, LOW);
+	  digitalWrite(clkpin, HIGH);
+	  digitalWrite(clkpin, LOW);
+	}
       }
     }
   }
