@@ -2,6 +2,7 @@
 #include "SPI.h"
 
 // Example to control LPD8806-based RGB LED Modules in a strip!
+// NOTE: WILL NOT WORK ON TRINKET OR GEMMA due to floating-point math
 /*****************************************************************************/
 
 #if defined(USB_SERIAL) || defined(USB_SERIAL_ADAFRUIT)
@@ -18,8 +19,6 @@ int clockPin = 15;
 // Set the first variable to the NUMBER of pixels. 32 = 32 pixels in a row
 // The LED strips are 32 LEDs per meter but you can extend/cut the strip
 LPD8806 strip = LPD8806(32, dataPin, clockPin);
-
-
 
 void setup() {
   // Start up the LED strip

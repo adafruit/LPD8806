@@ -1,5 +1,8 @@
 #include "LPD8806.h"
-#include "SPI.h"
+#include "SPI.h" // Comment out this line if using Trinket or Gemma
+#ifdef __AVR_ATtiny85__
+ #include <avr/power.h>
+#endif
 
 // Example to control LPD8806-based RGB LED Modules in a strip
 
@@ -26,6 +29,10 @@ LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
 //LPD8806 strip = LPD8806(nLEDs);
 
 void setup() {
+#if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
+  clock_prescale_set(clock_div_1); // Enable 16 MHz on Trinket
+#endif
+
   // Start up the LED strip
   strip.begin();
 

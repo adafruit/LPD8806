@@ -2,6 +2,7 @@
 #include "SPI.h"
 
 // Simple test for 160 (5 meters) of LPD8806-based RGB LED strip
+// Not compatible with Trinket/Gemma due to limited RAM
 
 /*****************************************************************************/
 

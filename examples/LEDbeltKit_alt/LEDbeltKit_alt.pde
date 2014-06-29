@@ -3,6 +3,8 @@
 // ANIMATION.  See the 'strandtest' sketch for a simpler and less RAM-
 // intensive example that can process more LEDs (100+).
 
+// ALSO: NOT COMPATIBLE WITH TRINKET OR GEMMA for way too many reasons.
+
 // Example to control LPD8806-based RGB LED Modules in a strip; originally
 // intended for the Adafruit Digital Programmable LED Belt Kit.
 // REQUIRES TIMER1 LIBRARY: http://www.arduino.cc/playground/Code/Timer1
