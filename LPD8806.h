@@ -1,3 +1,6 @@
+#ifndef __LPD8806__H__
+#define __LPD8806__H__
+
 #if (ARDUINO >= 100)
  #include <Arduino.h>
 #else
@@ -47,3 +50,5 @@ class LPD8806 {
     hardwareSPI, // If 'true', using hardware SPI
     begun;       // If 'true', begin() method was previously invoked
 };
+
+#endif
