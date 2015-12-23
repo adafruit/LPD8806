@@ -31,10 +31,10 @@ To reset the pass-through behavior and begin sending new data to the start
 of the strip, a number of zero bytes must be issued (remember, all color
 data bytes have the high bit set, thus are in the range 128 to 255, so the
 zero is 'special').  This should be done before each full payload of color
-values to the strip.  Curiously, zero bytes can only travel one meter (32
-LEDs) down the line before needing backup; the next meter requires an
-extra zero byte, and so forth.  Longer strips will require progressively
-more zeros.  *(see note below)
+values to the strip.  Curiously, zero bytes can only travel 32 LEDs down
+the line before needing backup; the next 32 LEDs require an extra zero
+byte, and so forth.  Longer strips will require progressively more zeros.
+*(see note below)
 
 In the interest of efficiency, it's possible to combine the former EOD
 extra latch byte and the latter zero reset...the same data can do double
@@ -54,6 +54,12 @@ for the last byte) is already latched.  It's a start-of-data marker, or
 an indicator to clear the thing-that's-not-a-shift-register.  But for
 conversational consistency with other LED drivers, we'll refer to it as
 a 'latch' anyway.
+
+Example:
+byte sent: G1 R1 B1 G2 R2 B2... G32 R32 B32 G33 R33 B33 G34 R34 B34...
+byte lit:   X G1 R1 B1 G2 R2... B31 G32 R32 B32  X  G33 R33 B33 G34...
+
+X = no visible change
 
 * This has been validated independently with multiple customers'
   hardware.  Please do not report as a bug or issue pull requests for
