@@ -8,9 +8,9 @@
   1) Install wiringPi (see: http://wiringpi.com/)
   2) Edit dataPin and clockPin below.
   3) Compile:
-        g++ -DRASPBERRY -c LPD8806.cpp
-        g++ -DRASPBERRY -c raspberry.cpp
-        g++ -DRASPBERRY -o raspberry raspberry.o LPD8806.o -lwiringPi
+        g++ -DRASPBERRY_PI -c LPD8806.cpp
+        g++ -DRASPBERRY_PI -c raspberry.cpp
+        g++ -DRASPBERRY_PI -o raspberry raspberry.o LPD8806.o -lwiringPi
         sudo ./raspberry
 */
 
