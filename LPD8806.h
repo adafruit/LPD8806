@@ -25,7 +25,7 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 #endif
 #ifndef uint32_t
-typedef unsigned short uint32_t;
+typedef unsigned int uint32_t;
 #endif
 
 #endif  // ifndef RASPBERRY
