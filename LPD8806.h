@@ -44,6 +44,7 @@ class LPD8806 {
     startBitbang(void),
     startSPI(void);
   boolean
+    pinsSet,     // If 'true', datapin and clkpin have been set at some point
     hardwareSPI, // If 'true', using hardware SPI
     begun;       // If 'true', begin() method was previously invoked
 };

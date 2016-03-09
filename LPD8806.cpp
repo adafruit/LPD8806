@@ -111,6 +111,7 @@ static void spi_out(uint8_t n) {
 LPD8806::LPD8806(uint16_t n) {
   pixels = NULL;
   begun  = false;
+  pinsSet = false;
   updateLength(n);
   updatePins();
 }
@@ -132,6 +133,7 @@ LPD8806::LPD8806(void) {
   numLEDs = numBytes = 0;
   pixels  = NULL;
   begun   = false;
+  pinsSet = false;
   updatePins(); // Must assume hardware SPI until pins are set
 }
 
@@ -144,9 +146,12 @@ void LPD8806::begin(void) {
 
 // Change pin assignments post-constructor, switching to hardware SPI:
 void LPD8806::updatePins(void) {
-  pinMode(datapin, INPUT); // Restore data and clock pins to inputs
-  pinMode(clkpin , INPUT);
+  if (pinsSet) {
+    pinMode(datapin, INPUT); // Restore data and clock pins to inputs
+    pinMode(clkpin , INPUT);
+  }
   datapin     = clkpin = 0;
+  pinsSet = false;
   hardwareSPI = true;
   // If begin() was previously invoked, init the SPI hardware now:
   if(begun == true) startSPI();
@@ -170,6 +175,7 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
   }
   datapin     = dpin;
   clkpin      = cpin;
+  pinsSet = true;
 #ifdef __AVR__
   clkport     = portOutputRegister(digitalPinToPort(cpin));
   clkpinmask  = digitalPinToBitMask(cpin);
