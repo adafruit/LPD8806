@@ -100,7 +100,12 @@ static void spi_out(uint8_t n) {
 
 // All other boards support Full and Proper Hardware SPI
 
+#ifdef RASPBERRY_PI
+#include <wiringPi.h>
+#else // ifdef RASPBERRY_PI
 #include <SPI.h>
+#endif // ifdef RASPBERRY_PI
+
 #define spi_out(n) (void)SPI.transfer(n)
 
 #endif
@@ -108,12 +113,14 @@ static void spi_out(uint8_t n) {
 /*****************************************************************************/
 
 // Constructor for use with hardware SPI (specific clock/data pins):
+#ifndef RASPBERRY_PI
 LPD8806::LPD8806(uint16_t n) {
   pixels = NULL;
   begun  = false;
   updateLength(n);
   updatePins();
 }
+#endif // ifndef RASPBERRY_PI
 
 // Constructor for use with arbitrary clock/data pins:
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
@@ -128,12 +135,14 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
 // read from internal flash memory or an SD card, or arrive via serial
 // command.  If using this constructor, MUST follow up with updateLength()
 // and updatePins() to establish the strip length and output pins!
+#ifndef RASPBERRY_PI
 LPD8806::LPD8806(void) {
   numLEDs = numBytes = 0;
   pixels  = NULL;
   begun   = false;
   updatePins(); // Must assume hardware SPI until pins are set
 }
+#endif // ifndef RASPBERRY_PI
 
 // Activate hard/soft SPI as appropriate:
 void LPD8806::begin(void) {
@@ -143,6 +152,7 @@ void LPD8806::begin(void) {
 }
 
 // Change pin assignments post-constructor, switching to hardware SPI:
+#ifndef RASPBERRY_PI
 void LPD8806::updatePins(void) {
   pinMode(datapin, INPUT); // Restore data and clock pins to inputs
   pinMode(clkpin , INPUT);
@@ -152,6 +162,7 @@ void LPD8806::updatePins(void) {
   if(begun == true) startSPI();
   // Otherwise, SPI is NOT initted until begin() is explicitly called.
 }
+#endif // ifndef RASPBERRY_PI
 
 // Change pin assignments post-constructor, using arbitrary pins:
 void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
@@ -161,7 +172,9 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 #ifdef __AVR_ATtiny85__
       DDRB &= ~(_BV(PORTB1) | _BV(PORTB2));
 #else
+#ifndef RASPBERRY_PI
       SPI.end();
+#endif // ifndef RASPBERRY_PI
 #endif
     } else {
       pinMode(datapin, INPUT); // Restore prior data and clock pins to inputs
@@ -185,6 +198,7 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 
 // Enable SPI hardware and set up protocol details:
 void LPD8806::startSPI(void) {
+#ifndef RASPBERRY_PI
 #ifdef __AVR_ATtiny85__
   PORTB &= ~(_BV(PORTB1) | _BV(PORTB2)); // Outputs
   DDRB  |=   _BV(PORTB1) | _BV(PORTB2);  // DO (NOT MOSI) + SCK
@@ -204,6 +218,7 @@ void LPD8806::startSPI(void) {
 
   // Issue initial latch/reset to strip:
   for(uint16_t i=((numLEDs+31)/32); i>0; i--) spi_out(0);
+#endif // ifndef RASPBERRY_PI
 }
 
 // Enable software SPI pins and issue initial latch:
@@ -257,7 +272,9 @@ void LPD8806::show(void) {
   // bytes vs. latch data, etc.  Everything is laid out in one big
   // flat buffer and issued the same regardless of purpose.
   if(hardwareSPI) {
+#ifndef RASPBERRY_PI
     while(i--) spi_out(*ptr++);
+#endif // ifndef RASPBERRY_PI
   } else {
     uint8_t p, bit;
 
