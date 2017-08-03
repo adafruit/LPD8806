@@ -297,12 +297,23 @@ void LPD8806::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
   }
 }
 
+
 // Set pixel color from 'packed' 32-bit GRB (not RGB) value:
 void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
   if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
     uint8_t *p = &pixels[n * 3];
     *p++ = (c >> 16) | 0x80;
     *p++ = (c >>  8) | 0x80;
+    *p++ =  c        | 0x80;
+  }
+}
+
+// Set pixel color from 'packed' 32-bit RGB value:
+void LPD8806::setPixelColorRGB(uint16_t n, uint32_t c) {
+   if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
+    uint8_t *p = &pixels[n * 3];
+    *p++ = (c >>  8) | 0x80;
+    *p++ = (c >> 16) | 0x80;
     *p++ =  c        | 0x80;
   }
 }
