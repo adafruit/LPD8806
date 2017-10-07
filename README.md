@@ -13,6 +13,6 @@ Or follow [this](https://github.com/adafruit/LPD8806/zipball/master) link
 * Uncompress the Downloaded Library
 * Rename the uncompressed folder to LPD8806
 * Check that the LPD8806 folder contains LPD8806.cpp and LPD8806.h
-* Place the LPD8806 library folder your <arduinosketchfolder>/libraries/ folder, 
+* Place the LPD8806 library folder in your `<arduinosketchfolder>/libraries/` folder,
   if the libraries folder does not exist - create it first!
 * Restart the IDE
