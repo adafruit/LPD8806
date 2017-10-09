@@ -5,6 +5,9 @@
  #include <pins_arduino.h>
 #endif
 
+#ifndef LPD8806_H
+#define LPD8806_H
+
 class LPD8806 {
 
  public:
@@ -47,3 +50,5 @@ class LPD8806 {
     hardwareSPI, // If 'true', using hardware SPI
     begun;       // If 'true', begin() method was previously invoked
 };
+
+#endif
