@@ -78,7 +78,7 @@ void renderAlpha01(void);
 void renderAlpha02(void);
 void renderAlpha03(void);
 void callback();
-byte gamma(byte x);
+byte ledgamma(byte x);
 long hsv2rgb(long h, byte s, byte v);
 char fixSin(int angle);
 char fixCos(int angle);
@@ -158,18 +158,18 @@ void callback() {
       // setPixelColor parameter list) because of the postincrement pointer
       // operations -- C/C++ leaves parameter evaluation order up to the
       // implementation; left-to-right order isn't guaranteed.
-      r = gamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
-      g = gamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
-      b = gamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
+      r = ledgamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
+      g = ledgamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
+      b = ledgamma((*frontPtr++ * alpha + *backPtr++ * inv) >> 8);
       strip.setPixelColor(i, r, g, b);
     }
   } else {
     // No transition in progress; just show back image
     for(i=0; i<numPixels; i++) {
       // See note above re: r, g, b vars.
-      r = gamma(*backPtr++);
-      g = gamma(*backPtr++);
-      b = gamma(*backPtr++);
+      r = ledgamma(*backPtr++);
+      g = ledgamma(*backPtr++);
+      b = ledgamma(*backPtr++);
       strip.setPixelColor(i, r, g, b);
     }
   }
@@ -437,7 +437,7 @@ PROGMEM const unsigned char gammaTable[]  = {
 // utility code...didn't want that huge table distracting or intimidating
 // folks before even getting into the real substance of the program, and
 // the compiler permits forward references to functions but not data.
-inline byte gamma(byte x) {
+inline byte ledgamma(byte x) {
   return pgm_read_byte(&gammaTable[x]);
 }
 
