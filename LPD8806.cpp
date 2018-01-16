@@ -105,17 +105,32 @@ static void spi_out(uint8_t n) {
 
 #endif
 
-/*****************************************************************************/
 
+/**************************************************************************/
+/*! 
+    @brief  Instantiates a new LPD8806 class using Hardware SPI. Can also be used to create an object where we define the number of LEDs and pins later
+    @param  n Number of pixels we will be addressing. If not passed in make sure to call {@link updateLength()} later!
+*/
+/**************************************************************************/
 // Constructor for use with hardware SPI (specific clock/data pins):
 LPD8806::LPD8806(uint16_t n) {
+  numLEDs = numBytes = 0;
   pixels = NULL;
   begun  = false;
-  updateLength(n);
+  if (n != 0) {
+    updateLength(n);
+  }
   updatePins();
 }
 
-// Constructor for use with arbitrary clock/data pins:
+/**************************************************************************/
+/*! 
+    @brief  Instantiates a new LPD8806 class using Software SPI
+    @param  n Number of pixels we will be addressing
+    @param  dpin Our bit-bang data pin
+    @param  cpin Our bit-bag clock pin
+*/
+/**************************************************************************/
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
   pixels = NULL;
   begun  = false;
@@ -123,26 +138,22 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
   updatePins(dpin, cpin);
 }
 
-// via Michael Vogt/neophob: empty constructor is used when strip length
-// isn't known at compile-time; situations where program config might be
-// read from internal flash memory or an SD card, or arrive via serial
-// command.  If using this constructor, MUST follow up with updateLength()
-// and updatePins() to establish the strip length and output pins!
-LPD8806::LPD8806(void) {
-  numLEDs = numBytes = 0;
-  pixels  = NULL;
-  begun   = false;
-  updatePins(); // Must assume hardware SPI until pins are set
-}
-
-// Activate hard/soft SPI as appropriate:
+/**************************************************************************/
+/*! 
+    @brief  Activate hard/soft SPI as appropriate
+*/
+/**************************************************************************/
 void LPD8806::begin(void) {
   if(hardwareSPI == true) startSPI();
   else                    startBitbang();
   begun = true;
 }
 
-// Change pin assignments post-constructor, switching to hardware SPI:
+/**************************************************************************/
+/*! 
+    @brief  Change pin assignments post-constructor, switching to hardware SPI
+*/
+/**************************************************************************/
 void LPD8806::updatePins(void) {
   pinMode(datapin, INPUT); // Restore data and clock pins to inputs
   pinMode(clkpin , INPUT);
@@ -153,7 +164,13 @@ void LPD8806::updatePins(void) {
   // Otherwise, SPI is NOT initted until begin() is explicitly called.
 }
 
-// Change pin assignments post-constructor, using arbitrary pins:
+/**************************************************************************/
+/*! 
+    @brief  Change pin assignments post-constructor, switching to software SPI
+    @param  dpin Our bit-bang data pin
+    @param  cpin Our bit-bag clock pin
+*/
+/**************************************************************************/
 void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
   if(begun == true) { // If begin() was previously invoked...
     // If previously using hardware SPI, turn that off:
@@ -182,6 +199,147 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 
   hardwareSPI = false;
 }
+
+/**************************************************************************/
+/*! 
+    @brief  Change strip length, calls malloc and free! 
+    @param  n New number of LEDs in strip
+*/
+/**************************************************************************/
+void LPD8806::updateLength(uint16_t n) {
+  uint8_t  latchBytes;
+  uint16_t dataBytes, totalBytes;
+
+  numLEDs = numBytes = 0;
+  if(pixels) free(pixels); // Free existing data (if any)
+
+  dataBytes  = n * 3;
+  latchBytes = (n + 31) / 32;
+  totalBytes = dataBytes + latchBytes;
+  if((pixels = (uint8_t *)malloc(totalBytes))) { // Alloc new data
+    numLEDs  = n;
+    numBytes = totalBytes;
+    memset( pixels           , 0x80, dataBytes);  // Init to RGB 'off' state
+    memset(&pixels[dataBytes], 0   , latchBytes); // Clear latch bytes
+  }
+  // 'begun' state does not change -- pins retain prior modes
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Retrieve number of LEDs in strip 
+    @returns  Number of LEDs in strip 
+*/
+/**************************************************************************/
+uint16_t LPD8806::numPixels(void) {
+  return numLEDs;
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Writes all the LED data to the strip at once! 
+*/
+/**************************************************************************/
+void LPD8806::show(void) {
+  uint8_t  *ptr = pixels;
+  uint16_t i    = numBytes;
+
+  // This doesn't need to distinguish among individual pixel color
+  // bytes vs. latch data, etc.  Everything is laid out in one big
+  // flat buffer and issued the same regardless of purpose.
+  if(hardwareSPI) {
+    while(i--) spi_out(*ptr++);
+  } else {
+    uint8_t p, bit;
+
+    while(i--) {
+      p = *ptr++;
+      for(bit=0x80; bit; bit >>= 1) {
+#ifdef __AVR__
+	  if(p & bit) *dataport |=  datapinmask;
+	  else        *dataport &= ~datapinmask;
+	  *clkport |=  clkpinmask;
+	  *clkport &= ~clkpinmask;
+#else
+	  if(p & bit) digitalWrite(datapin, HIGH);
+	  else        digitalWrite(datapin, LOW);
+	  digitalWrite(clkpin, HIGH);
+	  digitalWrite(clkpin, LOW);
+#endif
+      }
+    }
+  }
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Convert separate R,G,B into combined 32-bit GRB color
+    @param  r Red value, 0-127
+    @param  g Green value, 0-127
+    @param  b Blue value, 0-127
+    @returns 21-bit color value in uint32_t with red, green and blue packed
+*/
+/**************************************************************************/
+uint32_t LPD8806::Color(byte r, byte g, byte b) {
+  return ((uint32_t)(g | 0x80) << 16) |
+         ((uint32_t)(r | 0x80) <<  8) |
+                     b | 0x80 ;
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Set pixel color from separate 7-bit R, G, B components
+    @param  n Pixel # to change (0 is first pixel)
+    @param  r Red value, 0-127
+    @param  g Green value, 0-127
+    @param  b Blue value, 0-127
+*/
+/**************************************************************************/
+void LPD8806::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
+  if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
+    uint8_t *p = &pixels[n * 3];
+    *p++ = g | 0x80; // Strip color order is GRB,
+    *p++ = r | 0x80; // not the more common RGB,
+    *p++ = b | 0x80; // so the order here is intentional; don't "fix"
+  }
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Set pixel color from 'packed' 32-bit GRB (not RGB) value
+    @param  n Pixel # to change (0 is first pixel)
+    @param  c Packed color word
+*/
+/**************************************************************************/
+void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
+  if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
+    uint8_t *p = &pixels[n * 3];
+    *p++ = (c >> 16) | 0x80;
+    *p++ = (c >>  8) | 0x80;
+    *p++ =  c        | 0x80;
+  }
+}
+
+
+/**************************************************************************/
+/*! 
+    @brief  Query color from previously-set pixel (returns packed 32-bit GRB value)
+    @param  n Pixel # to change (0 is first pixel)
+    @returns  Packed color word
+*/
+/**************************************************************************/
+uint32_t LPD8806::getPixelColor(uint16_t n) {
+  if(n < numLEDs) {
+    uint16_t ofs = n * 3;
+    return ((uint32_t)(pixels[ofs    ] & 0x7f) << 16) |
+           ((uint32_t)(pixels[ofs + 1] & 0x7f) <<  8) |
+            (uint32_t)(pixels[ofs + 2] & 0x7f);
+  }
+
+  return 0; // Pixel # is out of bounds
+}
+
+/********************************************************************/
 
 // Enable SPI hardware and set up protocol details:
 void LPD8806::startSPI(void) {
@@ -225,96 +383,3 @@ void LPD8806::startBitbang() {
 #endif
 }
 
-// Change strip length (see notes with empty constructor, above):
-void LPD8806::updateLength(uint16_t n) {
-  uint8_t  latchBytes;
-  uint16_t dataBytes, totalBytes;
-
-  numLEDs = numBytes = 0;
-  if(pixels) free(pixels); // Free existing data (if any)
-
-  dataBytes  = n * 3;
-  latchBytes = (n + 31) / 32;
-  totalBytes = dataBytes + latchBytes;
-  if((pixels = (uint8_t *)malloc(totalBytes))) { // Alloc new data
-    numLEDs  = n;
-    numBytes = totalBytes;
-    memset( pixels           , 0x80, dataBytes);  // Init to RGB 'off' state
-    memset(&pixels[dataBytes], 0   , latchBytes); // Clear latch bytes
-  }
-  // 'begun' state does not change -- pins retain prior modes
-}
-
-uint16_t LPD8806::numPixels(void) {
-  return numLEDs;
-}
-
-void LPD8806::show(void) {
-  uint8_t  *ptr = pixels;
-  uint16_t i    = numBytes;
-
-  // This doesn't need to distinguish among individual pixel color
-  // bytes vs. latch data, etc.  Everything is laid out in one big
-  // flat buffer and issued the same regardless of purpose.
-  if(hardwareSPI) {
-    while(i--) spi_out(*ptr++);
-  } else {
-    uint8_t p, bit;
-
-    while(i--) {
-      p = *ptr++;
-      for(bit=0x80; bit; bit >>= 1) {
-#ifdef __AVR__
-	  if(p & bit) *dataport |=  datapinmask;
-	  else        *dataport &= ~datapinmask;
-	  *clkport |=  clkpinmask;
-	  *clkport &= ~clkpinmask;
-#else
-	  if(p & bit) digitalWrite(datapin, HIGH);
-	  else        digitalWrite(datapin, LOW);
-	  digitalWrite(clkpin, HIGH);
-	  digitalWrite(clkpin, LOW);
-#endif
-      }
-    }
-  }
-}
-
-// Convert separate R,G,B into combined 32-bit GRB color:
-uint32_t LPD8806::Color(byte r, byte g, byte b) {
-  return ((uint32_t)(g | 0x80) << 16) |
-         ((uint32_t)(r | 0x80) <<  8) |
-                     b | 0x80 ;
-}
-
-// Set pixel color from separate 7-bit R, G, B components:
-void LPD8806::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
-  if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
-    uint8_t *p = &pixels[n * 3];
-    *p++ = g | 0x80; // Strip color order is GRB,
-    *p++ = r | 0x80; // not the more common RGB,
-    *p++ = b | 0x80; // so the order here is intentional; don't "fix"
-  }
-}
-
-// Set pixel color from 'packed' 32-bit GRB (not RGB) value:
-void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
-  if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
-    uint8_t *p = &pixels[n * 3];
-    *p++ = (c >> 16) | 0x80;
-    *p++ = (c >>  8) | 0x80;
-    *p++ =  c        | 0x80;
-  }
-}
-
-// Query color from previously-set pixel (returns packed 32-bit GRB value)
-uint32_t LPD8806::getPixelColor(uint16_t n) {
-  if(n < numLEDs) {
-    uint16_t ofs = n * 3;
-    return ((uint32_t)(pixels[ofs    ] & 0x7f) << 16) |
-           ((uint32_t)(pixels[ofs + 1] & 0x7f) <<  8) |
-            (uint32_t)(pixels[ofs + 2] & 0x7f);
-  }
-
-  return 0; // Pixel # is out of bounds
-}

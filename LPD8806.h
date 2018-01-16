@@ -5,6 +5,11 @@
  #include <pins_arduino.h>
 #endif
 
+/**************************************************************************/
+/*! 
+    @brief  Class that stores state and functions for interacting with LPD8806 LED strips
+*/
+/**************************************************************************/
 class LPD8806 {
 
  public:
