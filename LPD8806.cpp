@@ -31,10 +31,10 @@ To reset the pass-through behavior and begin sending new data to the start
 of the strip, a number of zero bytes must be issued (remember, all color
 data bytes have the high bit set, thus are in the range 128 to 255, so the
 zero is 'special').  This should be done before each full payload of color
-values to the strip.  Curiously, zero bytes can only travel one meter (32
-LEDs) down the line before needing backup; the next meter requires an
-extra zero byte, and so forth.  Longer strips will require progressively
-more zeros.  *(see note below)
+values to the strip.  Curiously, zero bytes can only travel 32 LEDs down 
+the line before needing backup; the next 32 LEDs require an extra zero byte, 
+and so forth.  Longer strips will require progressively more zeros.  
+       *(see note below)
 
 In the interest of efficiency, it's possible to combine the former EOD
 extra latch byte and the latter zero reset...the same data can do double
