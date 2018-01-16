@@ -18,7 +18,9 @@
 // programmers may have an easier time starting out with the 'strandtest'
 // program also included with the LPD8806 library.
 
-#include <avr/pgmspace.h>
+#ifdef __AVR__
+  #include <avr/pgmspace.h>
+#endif
 #include "SPI.h"
 #include "LPD8806.h"
 #include "TimerOne.h"
