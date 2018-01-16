@@ -1,0 +1,12 @@
+{
+  "name": "LPD8806",
+  "keywords": "led, strip",
+  "description": "Library for LED strips and pixels using LPD8806 PWM (and probably LPD8803/LPD8809)",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/adafruit/LPD8806.git"
+  },
+  "frameworks": "arduino",
+  "platforms": "atmelavr"
+}
