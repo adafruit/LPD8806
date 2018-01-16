@@ -116,6 +116,7 @@ static void spi_out(uint8_t n) {
 LPD8806::LPD8806(uint16_t n) {
   numLEDs = numBytes = 0;
   pixels = NULL;
+  clkpin = datapin = -1;
   begun  = false;
   if (n != 0) {
     updateLength(n);
@@ -134,6 +135,8 @@ LPD8806::LPD8806(uint16_t n) {
 LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
   pixels = NULL;
   begun  = false;
+  clkpin = cpin;
+  datapin = dpin;
   updateLength(n);
   updatePins(dpin, cpin);
 }
@@ -144,8 +147,10 @@ LPD8806::LPD8806(uint16_t n, uint8_t dpin, uint8_t cpin) {
 */
 /**************************************************************************/
 void LPD8806::begin(void) {
-  if(hardwareSPI == true) startSPI();
-  else                    startBitbang();
+  if (clkpin == -1) 
+     startSPI();
+  else
+     startBitbang();
   begun = true;
 }
 
@@ -155,10 +160,12 @@ void LPD8806::begin(void) {
 */
 /**************************************************************************/
 void LPD8806::updatePins(void) {
-  pinMode(datapin, INPUT); // Restore data and clock pins to inputs
-  pinMode(clkpin , INPUT);
-  datapin     = clkpin = 0;
-  hardwareSPI = true;
+  if (clkpin != -1) {
+    pinMode(datapin, INPUT); // Restore data and clock pins to inputs
+    pinMode(clkpin , INPUT);
+  }
+
+  datapin = clkpin = -1;
   // If begin() was previously invoked, init the SPI hardware now:
   if(begun == true) startSPI();
   // Otherwise, SPI is NOT initted until begin() is explicitly called.
@@ -174,14 +181,14 @@ void LPD8806::updatePins(void) {
 void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
   if(begun == true) { // If begin() was previously invoked...
     // If previously using hardware SPI, turn that off:
-    if(hardwareSPI) {
+    if (clkpin == -1) {
 #ifdef __AVR_ATtiny85__
       DDRB &= ~(_BV(PORTB1) | _BV(PORTB2));
 #else
       SPI.end();
 #endif
     } else {
-      pinMode(datapin, INPUT); // Restore prior data and clock pins to inputs
+      pinMode(datapin, INPUT); // Restore data and clock pins to inputs
       pinMode(clkpin , INPUT);
     }
   }
@@ -196,8 +203,6 @@ void LPD8806::updatePins(uint8_t dpin, uint8_t cpin) {
 
   // If previously begun, enable 'soft' SPI outputs now
   if(begun == true) startBitbang();
-
-  hardwareSPI = false;
 }
 
 /**************************************************************************/
@@ -247,7 +252,7 @@ void LPD8806::show(void) {
   // This doesn't need to distinguish among individual pixel color
   // bytes vs. latch data, etc.  Everything is laid out in one big
   // flat buffer and issued the same regardless of purpose.
-  if(hardwareSPI) {
+  if (clkpin == -1) {
     while(i--) spi_out(*ptr++);
   } else {
     uint8_t p, bit;
@@ -320,6 +325,21 @@ void LPD8806::setPixelColor(uint16_t n, uint32_t c) {
   }
 }
 
+/**************************************************************************/
+/*! 
+    @brief  Set pixel color from 'packed' 32-bit RGB value
+    @param  n Pixel # to change (0 is first pixel)
+    @param  c Packed color word
+*/
+/**************************************************************************/
+void LPD8806::setPixelColorRGB(uint16_t n, uint32_t c) {
+   if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
+    uint8_t *p = &pixels[n * 3];
+    *p++ = (c >>  8) | 0x80;
+    *p++ = (c >> 16) | 0x80;
+    *p++ =  c        | 0x80;
+  }
+}
 
 /**************************************************************************/
 /*! 
