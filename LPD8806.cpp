@@ -14,7 +14,7 @@
  * first data out winds up at the *furthest* LED).  Each LED driver 'fills up'
  * with data and then passes through all subsequent bytes until a latch
  * condition takes place.  This is actually pretty common among LED drivers.
-*
+ *
  * All color data bytes have the high bit (128) set, with the remaining
  * seven bits containing a brightness value (0-127).  A byte with the high
  * bit clear has special meaning (explained later).
