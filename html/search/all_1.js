@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['color',['Color',['../class_l_p_d8806.html#a3465c717898ee7b121058f4fef44e4d6',1,'LPD8806']]]
+  ['begin',['begin',['../class_l_p_d8806.html#ae030f58cce7db08ea77dca0e2f74f7fb',1,'LPD8806']]]
 ];

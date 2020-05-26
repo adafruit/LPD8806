@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['getpixelcolor',['getPixelColor',['../class_l_p_d8806.html#a967fbb6b0796d7d5c5842d287d992fb7',1,'LPD8806']]]
+  ['color',['Color',['../class_l_p_d8806.html#a3465c717898ee7b121058f4fef44e4d6',1,'LPD8806']]]
 ];
