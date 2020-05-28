@@ -1,3 +1,8 @@
+/*!
+ * @file LPD8806.h
+ *
+ */
+
 #ifndef LPD8806_H
 #define LPD8806_H
 
