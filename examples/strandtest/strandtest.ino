@@ -185,7 +185,7 @@ uint32_t Wheel(uint16_t WheelPos)
       b = WheelPos % 128;      //blue up
       r = 0;                  //red off
       break; 
-    case 2:
+    default:
       b = 127 - WheelPos % 128;  //blue down 
       r = WheelPos % 128;      //red up
       g = 0;                  //green off
